@@ -15,7 +15,11 @@ typedef struct {
 	int x,y,z,t;         // coordinates of this site
 	int index;           // my index in the array
 	char parity;         // is it even or odd?
+#if (PRECISION==1)
+        int pad[2];          // pad out to 64 byte alignment
+#else
         int pad[10];         // pad out to 64 byte alignment
+#endif
 } site __attribute__ ((aligned));
 
 // globals related to the lattice

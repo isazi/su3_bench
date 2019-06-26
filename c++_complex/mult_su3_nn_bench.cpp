@@ -7,7 +7,7 @@
 #include "lattice.hpp"
 #include "c99_su3_inline.hpp"
 
-#undef DEBUG
+#define DEBUG
 
 #ifndef ITERATIONS
 #  define ITERATIONS 100
