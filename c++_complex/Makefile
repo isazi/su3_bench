@@ -16,4 +16,4 @@ make_lattice.o: Makefile make_lattice.cpp $(DEPENDS)
 all: mult_su3_nn_bench.exe
 
 clean:
-	rm -f *.exe *.o *.optrpt
+	rm -f *.exe *.o

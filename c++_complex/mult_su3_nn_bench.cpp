@@ -7,7 +7,7 @@
 #include "lattice.hpp"
 #include "c99_su3_inline.hpp"
 
-#define DEBUG
+#undef DEBUG
 
 #ifndef ITERATIONS
 #  define ITERATIONS 100
@@ -68,14 +68,14 @@ int main(int argc, char *argv[])
   printf("Total GFLOP/s = %f\n", tflop / ttotal / 1.0e9);
   
   // calculate a checksum
-  Complx sum = Complx(0.0, 0.0);
+  double sum = 0.0;
   #pragma omp parallel for reduction(+:sum)
   for (int i=0;i<total_sites;++i) for(int j=0;j<4;++j) for(int k=0;k<3;++k) for(int l=0;l<3;++l)
-    sum += c[j][i].e[k][l];
-  sum /= Complx((Real)total_sites, 0.0);
+    sum += real(c[j][i].e[k][l]);
+  sum /= (double)total_sites;
 
-  if ( round(real(sum)) != (4.0*sizeof(su3_matrix)/(sizeof(Complx))))
-    printf("Checksum FAILED: Sum = (%lf + %lfi)\n", real(sum), imag(sum));
+  if ( round(sum) != (4.0*sizeof(su3_matrix)/(sizeof(Complx))))
+    printf("Checksum FAILED: Sum = %lf\n", sum);
 
   // check memory usage
   printf("Total allocation for matrices = %.3f MB\n", total_sites*(sizeof(site)+4*sizeof(su3_matrix))/1048576.0);
