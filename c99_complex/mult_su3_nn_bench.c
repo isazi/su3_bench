@@ -31,7 +31,7 @@ int main(int argc, char *argv[])
   int i, j, k, l;
   int iters;
   double tstart, ttotal, tflop;
-  double complex sum;
+  double sum;
   struct rusage usage;
 
   su3_matrix b[4], *c[4];
@@ -96,13 +96,13 @@ int main(int argc, char *argv[])
   printf("Total GFLOP/s = %f\n", tflop / ttotal / 1.0e9);
   
   // calculate a checksum
-  sum = 0.0+0.0*I;
+  sum = 0.0;
   for (i=0;i<sites_on_node;++i) for(j=0;j<4;++j) for(k=0;k<3;++k) for(l=0;l<3;++l)
-    sum += c[j][i].e[k][l];
-  sum /= (double)sites_on_node+0.0*I;
+    sum += creal(c[j][i].e[k][l]);
+  sum /= (double)sites_on_node;
 
-  if ( round(creal(sum)) != (4.0*sizeof(su3_matrix)/(sizeof(complex double))))
-    printf("Checksum FAILED: Sum = (%lf + %lfi)\n", creal(sum), cimag(sum));
+  if ( sum != (double)(4.0*sizeof(su3_matrix)/(sizeof(Complx))))
+    printf("Checksum FAILED: Sum = %lf\n", sum);
 
   printf("Total allocation for matrices = %.3f MB\n", sites_on_node*(sizeof(site)+4*sizeof(su3_matrix))/1048576.0);
   if (getrusage(RUSAGE_SELF, &usage) == 0)

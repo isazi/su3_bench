@@ -22,12 +22,14 @@ typedef struct { double complex c[3]; } dsu3_vector;
 #define su3_matrix      fsu3_matrix
 #define su3_vector      fsu3_vector
 #define Real		float
+#define Complx          float complex
 
 #else
 
 #define su3_matrix      dsu3_matrix
 #define su3_vector      dsu3_vector
 #define Real		double
+#define Complx          double complex
 
 #endif
 
