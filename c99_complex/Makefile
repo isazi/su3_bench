@@ -1,6 +1,5 @@
 #
 # GCC
-#CC = gcc
 CC = clang-9
 CFLAGS = -std=c99 -O3 -fopenmp
 
@@ -8,7 +7,7 @@ CFLAGS = -std=c99 -O3 -fopenmp
 #CC = icc
 #CFLAGS = -std=c99 -O3 -qopenmp -qopt-report=5 -qopt-report-phase=vec
 
-INCLUDES = -DPRECISION=2 -DN=32 #-DOMP_TARGET
+INCLUDES = -DN=32 #-DPRECISION=1 #-DOMP_TARGET
 LDLIBS = -lm 
 
 bench: mult_su3_nn_bench.exe mult_su3_mat_vec_bench.exe mult_su3_mat_vec_sum_bench.exe \
