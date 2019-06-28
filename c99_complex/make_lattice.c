@@ -4,8 +4,6 @@
 #include "lattice.h"
 
 void make_lattice(){
-  int i,j,k,l;		/* scratch */
-  short x,y,z,t;		/* coordinates */
   /* allocate space for lattice, fill in parity, coordinates and index */
 #ifdef DEBUG
   printf("Mallocing %d Bytes per node for lattice\n",
@@ -17,14 +15,14 @@ void make_lattice(){
     exit(1);
   }
 
-  i=0;
-  for(t=0;t<nt;t++)for(z=0;z<nz;z++)for(y=0;y<ny;y++)for(x=0;x<nx;x++){
+  int i=0;
+  for(int t=0;t<nt;t++)for(int z=0;z<nz;z++)for(int y=0;y<ny;y++)for(int x=0;x<nx;x++){
       lattice[i].x=x;	lattice[i].y=y;	lattice[i].z=z;	lattice[i].t=t;
       lattice[i].index = x+nx*(y+ny*(z+nz*t));
       if( (x+y+z+t)%2 == 0)lattice[i].parity=EVEN;
       else	         lattice[i].parity=ODD;
 
-      for(j=0; j<4; ++j) for(k=0; k<3; ++k) for(l=0; l<3; ++l) {
+      for(int j=0; j<4; ++j) for(int k=0; k<3; ++k) for(int l=0; l<3; ++l) {
         lattice[i].link[j].e[k][l]=1.0+0.0*I;
       }
 
@@ -34,7 +32,5 @@ void make_lattice(){
 
 void free_lattice()
 {
-  int i;
-
   free(lattice);
 }
