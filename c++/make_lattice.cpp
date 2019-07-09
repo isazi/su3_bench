@@ -4,19 +4,7 @@
 #include "su3.hpp"
 #include "lattice.hpp"
 
-void make_lattice(site **lattice, int n, int *total_sites) {
-
-  /* allocate space for lattice, fill in parity, coordinates and index */
-  *total_sites = n*n*n*n;
-  site *s;
-  int errval;
-  if ((errval = posix_memalign((void **)&s, ALIGN_N, *total_sites * sizeof(site))) != 0) {
-    if (errval == EINVAL)
-      printf("ERROR: Invalid alignment for lattice allocation\n");
-    else
-      printf("ERROR: Insufficient memory for lattice allocation\n");
-    exit(errval);
-  }
+void make_lattice(site *s, int n) {
 
   int nx=n;
   int ny=n;
@@ -37,10 +25,5 @@ void make_lattice(site **lattice, int n, int *total_sites) {
       }
     }
   }
-  *lattice = s;
 }
 
-void free_lattice(site *lattice)
-{
-  free(lattice);
-}

@@ -1,8 +1,8 @@
 #
-CC = clang-9
+CC = g++
 CFLAGS = -std=c++11 -g -O3 -fopenmp
 
-INCLUDES = -DN=32 #-DPRECISION=1
+INCLUDES = -DLDIM=32 #-DPRECISION=1
 LDLIBS = -lm 
 
 DEPENDS = su3.hpp lattice.hpp c99_su3_inline.hpp

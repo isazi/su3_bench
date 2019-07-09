@@ -1,5 +1,5 @@
-#ifndef _SU3_H
-#define _SU3_H
+#ifndef _SU3_HPP
+#define _SU3_HPP
 // Adapted from su3.h in MILC version 7
 
 #include <complex>
@@ -22,5 +22,5 @@ typedef struct { std::complex<double> c[3]; } dsu3_vector;
   #define Complx        std::complex<double>
 #endif  // PRECISION
 
-#endif  // _SU3_H
+#endif  // _SU3_HPP
 

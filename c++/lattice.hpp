@@ -1,5 +1,5 @@
-#ifndef _LATTICE_H
-#define _LATTICE_H
+#ifndef _LATTICE_HPP
+#define _LATTICE_HPP
 // Adapted from lattice.h in MILC version 7
 
 #include "su3.hpp"
@@ -7,7 +7,7 @@
 #define EVEN 0x02
 #define ODD 0x01
 
-#define ALIGN_N 64
+#define ALIGN_N 8
 
 // The lattice is an array of sites
 typedef struct {
@@ -23,7 +23,7 @@ typedef struct {
 } site __attribute__ ((aligned));
 
 // globals related to the lattice
-extern void make_lattice(site **, int, int *);
+extern void make_lattice(site *, int);
 extern void free_lattice(site *);
 
-#endif // _LATTICE_H
+#endif // _LATTICE_HPP

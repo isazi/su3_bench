@@ -3,6 +3,9 @@
 #include <sys/resource.h>
 #include <math.h>
 #include <omp.h>
+
+#include <vector>
+
 #include "su3.hpp"
 #include "lattice.hpp"
 #include "c99_su3_inline.hpp"
@@ -13,35 +16,34 @@
 #  define ITERATIONS 100
 #endif
 
-// Lattice dimension = N^4
-#ifndef N
-#  define N 7
+// Lattice size = LDIM^4
+#ifndef LDIM
+#  define LDIM 7
 #endif
 
 int main(int argc, char *argv[])
 {
-  // initialize the lattice
-  site *lattice;
-  int total_sites;
-  make_lattice(&lattice, (int)N, &total_sites);
+  // allocate initialize the lattice and working matrices
+  int total_sites = LDIM*LDIM*LDIM*LDIM;
 
-  // initialize resultant lattice
-  su3_matrix b[4], *c[4];
+  std::vector<site> lattice(total_sites);
+  make_lattice(&lattice[0], LDIM);
+
+  std::vector<su3_matrix> b(4);
   for(int j=0;j<4;++j) for(int k=0;k<3;++k) for(int l=0;l<3;++l) {
     b[j].e[k][l] = Complx((1.0/3.0), 0.0);
   }
-  for(int j=0; j<4; ++j) {
-    int errval;
-    if ((errval = posix_memalign((void **)&c[j], ALIGN_N, total_sites*sizeof(su3_matrix))) != 0) {
-      printf("ERROR: Insufficient memory for resultant allocation\n");
-      exit(errval);
-    }
-  }
+
+  std::vector<su3_matrix> c(4*total_sites);
 
 #ifdef DEBUG
   {
+    printf("Total number of sites = %d\n", total_sites);
     printf("Sizeof site is %lu bytes\n", sizeof(site));
     printf("Sizeof matrix is %lu bytes\n", sizeof(su3_matrix));
+    printf("Sizeof lattice is %f MB\n", (float)sizeof(site)*lattice.size()/1048576.0);
+    printf("Sizeof b[] is %f MB\n", (float)sizeof(su3_matrix)*b.size()/1048576.0);
+    printf("Sizeof c[] is %f MB\n", (float)sizeof(su3_matrix)*c.size()/1048576.0);
     // check alignment
     for (int i=0; i<3; ++i) {
       site *s = &lattice[i];
@@ -51,14 +53,14 @@ int main(int argc, char *argv[])
   }
 #endif
 
-  // Test loop
-  printf("Number of sites = %d^4\n", N);
+  printf("Number of sites = %d^4\n", LDIM);
   printf("Executing %d iterations\n", ITERATIONS);
+  // benchmark loop
   double tstart = omp_get_wtime();
   for (int iters=0; iters<ITERATIONS; ++iters) {
     #pragma omp parallel for
     for(int i=0;i<total_sites;++i) for(int j=0;j<4;++j)
-        mult_su3_nn( &lattice[i].link[j], &b[j], &c[j][i]);
+        mult_su3_nn( &lattice[i].link[j], &b[j], &c.at(j*total_sites+i));
   }
   double ttotal = omp_get_wtime() - tstart;
   printf("Total execution time = %.2f secs\n", ttotal);
@@ -71,7 +73,7 @@ int main(int argc, char *argv[])
   double sum = 0.0;
   #pragma omp parallel for reduction(+:sum)
   for (int i=0;i<total_sites;++i) for(int j=0;j<4;++j) for(int k=0;k<3;++k) for(int l=0;l<3;++l)
-    sum += real(c[j][i].e[k][l]);
+    sum += real(c.at(j*total_sites+i).e[k][l]);
   sum /= (double)total_sites;
 
   if ( round(sum) != (4.0*sizeof(su3_matrix)/(sizeof(Complx))))
@@ -83,9 +85,5 @@ int main(int argc, char *argv[])
   if (getrusage(RUSAGE_SELF, &usage) == 0)
     printf("Approximate memory usage = %.3f MB\n", (float)usage.ru_maxrss/1024.0);
 
-  // clean up and exit
-  for(int j=0; j<4; ++j)
-    free(c[j]);
-  free_lattice(lattice);
 }
 
