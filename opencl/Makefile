@@ -3,7 +3,7 @@ CC = g++
 CFLAGS = -std=c++11 -g -O3 -fopenmp -Wno-ignored-attributes
 CFLAGS += -I$(CUDA_ROOT)/include
 
-INCLUDES = -DITERATIONS=1 -DLDIM=2 #-DPRECISION=1
+INCLUDES = -DVERBOSE=2 -DITERATIONS=10 -DLDIM=38 #-DPRECISION=1
 LDLIBS = -lm 
 LDLIBS += -L$(CUDA_ROOT)/lib64 -lOpenCL
 

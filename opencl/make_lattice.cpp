@@ -1,11 +1,14 @@
 // Derived from make_lattice() in MILC versin 7
 #include <stdio.h>
 #include <stdlib.h>
-#include "su3.hpp"
 #include "lattice.hpp"
 
-void make_lattice(site *s, int n) {
+void init_link(su3_matrix *s, Complx val) {
+  for(int j=0; j<4; ++j) for(int k=0; k<3; ++k) for(int l=0; l<3; ++l)
+      s[j].e[k][l]=val;
+}
 
+void make_lattice(site *s, int n) {
   int nx=n;
   int ny=n;
   int nz=n;
@@ -20,9 +23,7 @@ void make_lattice(site *s, int n) {
         s[i].parity=EVEN;
       else
         s[i].parity=ODD;
-      for(int j=0; j<4; ++j) for(int k=0; k<3; ++k) for(int l=0; l<3; ++l) {
-        s[i].link[j].e[k][l]=Complx(1.0,0.0);
-      }
+      init_link(&s[i].link[0], Complx(1.0,0.0));
     }
   }
 }

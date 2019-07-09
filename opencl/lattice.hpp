@@ -2,7 +2,11 @@
 #define _LATTICE_HPP
 // Adapted from lattice.h in MILC version 7
 
-#include "su3.hpp"
+#ifdef __OPENCL_VERSION__
+#  include "su3.h"
+#else
+#  include "su3.hpp"
+#endif
 
 #define EVEN 0x02
 #define ODD 0x01
@@ -23,6 +27,7 @@ typedef struct {
 } site __attribute__ ((aligned));
 
 // globals related to the lattice
+extern void init_link(su3_matrix *, Complx);
 extern void make_lattice(site *, int);
 
 #endif // _LATTICE_HPP
