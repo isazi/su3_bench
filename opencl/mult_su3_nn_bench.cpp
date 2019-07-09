@@ -16,7 +16,6 @@
 
 #include "su3.hpp"
 #include "lattice.hpp"
-//#include "c99_su3_inline.hpp"
 
 #ifndef ITERATIONS
 #  define ITERATIONS 100
@@ -90,9 +89,7 @@ int main(int argc, char *argv[])
     fprintf(stderr, "ERROR: OpenCL kernel failed to build\n");
     exit(-1);
   }
-  //auto k_mat_nn = cl::make_kernel<cl::Buffer, cl::Buffer, cl::Buffer>(program, "k_mat_nn");
-  //auto k_mat_nn = cl::make_kernel<cl::Buffer>(program, "k_mat_nn");
-  auto k_mat_nn = cl::make_kernel<cl::Buffer, cl::Buffer, cl::Buffer, cl::Buffer>(program, "k_mat_nn");
+  auto k_mat_nn = cl::make_kernel<cl::Buffer, cl::Buffer, cl::Buffer>(program, "k_mat_nn");
 #ifdef VERBOSE
   {
     std::string s, v;
@@ -116,25 +113,19 @@ int main(int argc, char *argv[])
 //  d_b = cl::Buffer(context, begin(b), end(b), true);
 //  cl::copy(queue, begin(b), end(b), d_b);
 
-std::vector<int> global_size={-1};
-cl::Buffer d_global_size;
-d_global_size = cl::Buffer(context, begin(global_size), end(global_size), true);
   printf("Number of sites = %d^4\n", LDIM);
   printf("Executing %d iterations\n", ITERATIONS);
   // benchmark loop
   double tstart = omp_get_wtime();
-total_sites=2;
   for (int iters=0; iters<ITERATIONS; ++iters) {
 //    #pragma omp parallel for
 //    for(int i=0;i<total_sites;++i) for(int j=0;j<4;++j)
 //        mult_su3_nn( &lattice[i].link[j], &b[j], &c.at(j*total_sites+i));
-    k_mat_nn(cl::EnqueueArgs(queue, cl::NDRange(total_sites)), d_lattice, d_b, d_c, d_global_size);
+    k_mat_nn(cl::EnqueueArgs(queue, cl::NDRange(total_sites)), d_lattice, d_b, d_c);
     queue.finish(); 
   }
   double ttotal = omp_get_wtime() - tstart;
   printf("Total execution time = %.2f secs\n", ttotal);
-cl::copy(queue, d_global_size, begin(global_size), end(global_size));
-printf("# of sites = %d\n", global_size[0]);
 
   // each iter of above loop is (3*3)*(12 mult + 10 add) = 108 mult + 90 add = 198 ops
   double tflop = (double)ITERATIONS * total_sites * 4.0 * 198.0;
@@ -143,10 +134,12 @@ printf("# of sites = %d\n", global_size[0]);
   // calculate a checksum
   double sum = 0.0;
   cl::copy(queue, d_c, begin(c), end(c));  // copy data back from device
-//  #pragma omp parallel for reduction(+:sum)
+  #pragma omp parallel for reduction(+:sum)
   for (int i=0;i<total_sites;++i) for(int j=0;j<4;++j) for(int k=0;k<3;++k) for(int l=0;l<3;++l) {
     sum += real(c.at(j*total_sites+i).e[k][l]);
-printf("c[%d][%d]->e[%d][%d]=%f, sum = %f\n",j,i,k,l,real(c.at(j*total_sites+i).e[k][l]),sum);
+#ifdef DEBUG
+    printf("c[%d][%d]->e[%d][%d]=%f, sum = %f\n",j,i,k,l,real(c.at(j*total_sites+i).e[k][l]),sum);
+#endif
   }
   sum /= (double)total_sites;
 
