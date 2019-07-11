@@ -5,9 +5,9 @@
 //  matrix multiply, no adjoints 
 //  C  <-  A*B	
 __kernel void k_mat_nn(
-            __global site * restrict a,
-            __global su3_matrix * restrict b,
-            __global site * restrict c )
+  __global const site*       restrict a,
+  __global const su3_matrix* restrict b,
+  __global       site*       restrict c )
 {
   size_t mysite = get_global_id(0);
 #ifdef DEBUG
@@ -15,11 +15,11 @@ __kernel void k_mat_nn(
 #endif
 
   for (int j=0; j<4; ++j) {
-    for(int k=0;k<3;k++) {
-      for(int l=0;l<3;l++){
+    for (int k=0;k<3;k++) {
+      for (int l=0;l<3;l++){
         c[mysite].link[j].e[k][l].real=0.0;
         c[mysite].link[j].e[k][l].imag=0.0;
-        for(int m=0;m<3;m++) {
+        for (int m=0;m<3;m++) {
           CMULSUM(a[mysite].link[j].e[k][m], b[j].e[m][l], c[mysite].link[j].e[k][l]);
 #ifdef DEBUG
           if (mysite==0 && m==2)
