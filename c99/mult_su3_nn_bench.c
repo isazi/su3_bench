@@ -4,6 +4,7 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <math.h>
+#include <omp.h>
 #include "su3.h"
 #include "lattice.h"
 
@@ -74,7 +75,7 @@ int main(int argc, char *argv[])
   #pragma omp target enter data map(to: lattice, b)
   #pragma omp target exit data map(from: c)
 #endif
-  tstart = mysecond();
+  tstart = omp_get_wtime();
   for (iters=0; iters<ITERATIONS; ++iters) {
 # ifdef OMP_TARGET
     #pragma omp target teams distribute parallel for
@@ -94,7 +95,7 @@ int main(int argc, char *argv[])
       }
     }
   }
-  ttotal = mysecond() - tstart;
+  ttotal = omp_get_wtime() - tstart;
   printf("Total execution time = %.2f secs\n", ttotal);
 
   // each iter of above loop is (3*3)*(12 mult + 10 add) = 108 mult + 90 add = 198 ops

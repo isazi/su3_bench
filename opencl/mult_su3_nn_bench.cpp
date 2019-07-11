@@ -4,6 +4,7 @@
 #endif
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <sys/resource.h>
 #include <math.h>
 #include <omp.h>
@@ -49,6 +50,22 @@ static inline std::string loadProgram(std::string input)
 
 int main(int argc, char *argv[])
 {
+  int flags, opt;
+  unsigned int wg_size=0;
+
+  // parse command line for parameters
+  while ((opt=getopt(argc, argv, "g:")) != -1) {
+    switch (opt) {
+    case 'g':
+      wg_size = atoi(optarg);
+      printf("Setting workgroup size to %d\n", wg_size);
+      break;
+    default: 
+      fprintf(stderr, "Usage: %s [-g workgroup size]\n", argv[0]);
+      exit (1);
+    }
+  }
+
   // allocate and initialize the working lattices and B link matrix
   int total_sites = LDIM*LDIM*LDIM*LDIM;
   // A
@@ -92,7 +109,7 @@ int main(int argc, char *argv[])
   cl::Program program(context, loadProgram("m_mat_nn.cl"), false);
   if (program.build(build_args) != CL_SUCCESS) {
     std::cout << "ERROR: OpenCL kernel failed to build" << std::endl;
-    exit(-1);
+    exit(1);
   }
   auto k_mat_nn = cl::make_kernel<cl::Buffer, cl::Buffer, cl::Buffer>(program, "k_mat_nn");
 #if defined VERBOSE && VERBOSE >= 2
@@ -116,7 +133,10 @@ int main(int argc, char *argv[])
   // benchmark loop
   auto tstart = Clock::now();
   for (int iters=0; iters<ITERATIONS; ++iters) {
-    k_mat_nn(cl::EnqueueArgs(queue, cl::NDRange(total_sites)), d_a, d_b, d_c);
+    if (wg_size > 0) // set the OpenCL workgroup size
+      k_mat_nn(cl::EnqueueArgs(queue, cl::NDRange(total_sites), cl::NDRange(wg_size)), d_a, d_b, d_c);
+    else  // let the runtime figure it out
+      k_mat_nn(cl::EnqueueArgs(queue, cl::NDRange(total_sites)), d_a, d_b, d_c);
   }
   queue.finish(); 
   double ttotal = std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tstart).count();

@@ -1,7 +1,8 @@
 # GCC or Clang
 #CC = g++-8
-CC = clang++-9
+CC = clang++
 CFLAGS = -std=c++11 -g -O3 -fopenmp -Wno-ignored-attributes -Wno-deprecated-declarations
+CFLAGS += -fopenmp-targets=nvptx64-nvidia-cuda
 
 # Mentor Graphics gcc
 # Note, -O2 and -O3 result in seg faults

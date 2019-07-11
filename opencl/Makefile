@@ -1,11 +1,11 @@
 #
-CC = clang++-9
+CC = clang++
 CFLAGS = -std=c++11 -g -O3 -fopenmp -Wno-ignored-attributes -Wno-deprecated-declarations
-CFLAGS += -I$(ROCM_OCL)/include
+CFLAGS += -I$(CUDA_ROOT)/include
 
-INCLUDES = -DVERBOSE=2 -DITERATIONS=100 -DLDIM=32 #-DPRECISION=1
+INCLUDES = -DVERBOSE=2 -DITERATIONS=100 -DLDIM=32 -DPRECISION=1
 LDLIBS = -lm 
-LDLIBS += -L$(ROCM_OCL)/lib/x86_64 -lOpenCL
+LDLIBS += -L$(CUDA_ROOT)/lib64 -lOpenCL
 
 DEPENDS = su3.hpp lattice.hpp
 
