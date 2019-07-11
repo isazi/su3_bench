@@ -51,26 +51,35 @@ static inline std::string loadProgram(std::string input)
 int main(int argc, char *argv[])
 {
   int flags, opt;
-  unsigned int wg_size=0;
+  unsigned int wgsize=0;
+  unsigned int iterations=ITERATIONS;
+  unsigned int ldim=LDIM;
 
   // parse command line for parameters
-  while ((opt=getopt(argc, argv, "g:")) != -1) {
+  while ((opt=getopt(argc, argv, "i:n:g:")) != -1) {
     switch (opt) {
+    case 'i':
+      iterations = atoi(optarg);
+      printf("Setting iteration count to %d\n", iterations);
+      break;
+    case 'n':
+      ldim = atoi(optarg);
+      printf("Setting lattice dimentions to %d^4\n", ldim);
+      break;
     case 'g':
-      wg_size = atoi(optarg);
-      printf("Setting workgroup size to %d\n", wg_size);
+      wgsize = atoi(optarg);
       break;
     default: 
-      fprintf(stderr, "Usage: %s [-g workgroup size]\n", argv[0]);
+      fprintf(stderr, "Usage: %s [-i iterations] [-n lattice dimension] [-g workgroup size]\n", argv[0]);
       exit (1);
     }
   }
 
   // allocate and initialize the working lattices and B link matrix
-  int total_sites = LDIM*LDIM*LDIM*LDIM;
+  int total_sites = ldim*ldim*ldim*ldim;
   // A
   std::vector<site> a(total_sites);
-  make_lattice(&a[0], LDIM);
+  make_lattice(&a[0], ldim);
   // B
   std::vector<su3_matrix> b(4);
   init_link(&b[0], Complx((1.0/3.0), 0.0));
@@ -127,14 +136,15 @@ int main(int argc, char *argv[])
   auto d_c = cl::Buffer(context, CL_MEM_READ_WRITE, sizeof(site)*c.size());
 
 #if defined VERBOSE && VERBOSE >= 1
-  printf("Number of sites = %d^4\n", LDIM);
-  printf("Executing %d iterations\n", ITERATIONS);
+  printf("Number of sites = %d^4\n", ldim);
+  printf("Executing %d iterations\n", iterations);
+  printf("Workgroup size set to %d\n", wgsize);
 #endif
   // benchmark loop
   auto tstart = Clock::now();
-  for (int iters=0; iters<ITERATIONS; ++iters) {
-    if (wg_size > 0) // set the OpenCL workgroup size
-      k_mat_nn(cl::EnqueueArgs(queue, cl::NDRange(total_sites), cl::NDRange(wg_size)), d_a, d_b, d_c);
+  for (int iters=0; iters<iterations; ++iters) {
+    if (wgsize > 0) // set the OpenCL workgroup size
+      k_mat_nn(cl::EnqueueArgs(queue, cl::NDRange(total_sites), cl::NDRange(wgsize)), d_a, d_b, d_c);
     else  // let the runtime figure it out
       k_mat_nn(cl::EnqueueArgs(queue, cl::NDRange(total_sites)), d_a, d_b, d_c);
   }
@@ -146,7 +156,7 @@ int main(int argc, char *argv[])
 #endif
 
   // each iter of above loop is (3*3)*(12 mult + 10 add) = 108 mult + 90 add = 198 ops
-  double tflop = (double)ITERATIONS * total_sites * 4.0 * 198.0;
+  double tflop = (double)iterations * total_sites * 4.0 * 198.0;
   printf("Total GFLOP/s = %.3f\n", tflop / ttotal / 1.0e9);
   
   // calculate a checksum
