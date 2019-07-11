@@ -11,19 +11,19 @@ CFLAGS = -std=c++11 -g -O3 -fopenmp -Wno-ignored-attributes -Wno-deprecated-decl
 INCLUDES = -DVERBOSE=2 -DITERATIONS=100 -DLDIM=32 #-DPRECISION=1
 LDLIBS = -lm 
 
-DEPENDS = su3.hpp lattice.hpp m_mat_nn.hpp
+DEPENDS = Makefile su3.hpp lattice.hpp
 
 all: mult_su3_nn-wtarget.exe mult_su3_nn-wotarget.exe
 
 wotarget: mult_su3_nn-wotarget.exe
 
-mult_su3_nn-wtarget.exe: Makefile mult_su3_nn_bench.cpp make_lattice.o $(DEPENDS)
+mult_su3_nn-wtarget.exe: mult_su3_nn_bench.cpp make_lattice.o $(DEPENDS)
 	$(CC) $(CFLAGS) -DOMP_TARGET $(INCLUDES) -o $@ make_lattice.o mult_su3_nn_bench.cpp $(LDLIBS)
 
-mult_su3_nn-wotarget.exe: Makefile mult_su3_nn_bench.cpp make_lattice.o $(DEPENDS)
+mult_su3_nn-wotarget.exe: mult_su3_nn_bench.cpp make_lattice.o $(DEPENDS)
 	$(CC) $(CFLAGS) $(INCLUDES) -o $@ make_lattice.o mult_su3_nn_bench.cpp $(LDLIBS)
 
-make_lattice.o: Makefile make_lattice.cpp $(DEPENDS)
+make_lattice.o: make_lattice.cpp $(DEPENDS)
 	$(CC) $(CFLAGS) $(INCLUDES) -c make_lattice.cpp
 
 clean:

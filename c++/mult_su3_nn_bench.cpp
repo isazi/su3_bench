@@ -12,7 +12,6 @@
 typedef std::chrono::system_clock Clock;
 
 #include "lattice.hpp"
-#include "m_mat_nn.hpp"
 
 #ifndef ITERATIONS
 #  define ITERATIONS 100
@@ -83,13 +82,14 @@ int main(int argc, char *argv[])
 #else
     #pragma omp parallel for
 #endif
-    for(int i=0;i<total_sites;++i)
-    {
+    for(int i=0;i<total_sites;++i) {
       for (int j=0; j<4; ++j) {
-        for(int k=0;k<3;k++)for(int l=0;l<3;l++){
-          c[i].link[j].e[k][l]=Complx(0.0,0.0);
-          for(int m=0;m<3;m++) {
-            c[i].link[j].e[k][l] += a[i].link[j].e[k][m] * b[j].e[m][l];
+        for(int k=0;k<3;k++) {
+          for(int l=0;l<3;l++){
+            c[i].link[j].e[k][l]=Complx(0.0,0.0);
+            for(int m=0;m<3;m++) {
+              c[i].link[j].e[k][l] += a[i].link[j].e[k][m] * b[j].e[m][l];
+            }
           }
         }
       }
