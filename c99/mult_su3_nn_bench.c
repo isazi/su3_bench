@@ -83,10 +83,12 @@ int main(int argc, char *argv[])
 # endif
     for(int i=0;i<sites_on_node;++i) {
       for (int j=0; j<4; ++j) {
-        for(int k=0;k<3;k++)for(int l=0;l<3;l++){
-          c[i].link[j].e[k][l]=0.0+0.0*I;
-          for(int m=0;m<3;m++) {
-            c[i].link[j].e[k][l] += lattice[i].link[j].e[k][m] * b[j].e[m][l];
+        for(int k=0;k<3;k++) {
+          for(int l=0;l<3;l++) {
+            c[i].link[j].e[k][l]=0.0+0.0*I;
+            for(int m=0;m<3;m++) {
+              c[i].link[j].e[k][l] += lattice[i].link[j].e[k][m] * b[j].e[m][l];
+            }
           }
         }
       }
