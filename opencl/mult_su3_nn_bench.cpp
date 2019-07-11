@@ -1,3 +1,7 @@
+#include <CL/cl.hpp>
+#ifndef DEVICE
+#  define DEVICE CL_DEVICE_TYPE_DEFAULT
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/resource.h>
@@ -11,21 +15,20 @@
 #include <chrono>
 typedef std::chrono::system_clock Clock;
 
-#include <CL/cl.hpp>
-#ifndef DEVICE
-#  define DEVICE CL_DEVICE_TYPE_DEFAULT
-#endif
-
 #include "lattice.hpp"
 
 #ifndef ITERATIONS
 #  define ITERATIONS 100
 #endif
 #ifndef LDIM
-#  define LDIM 7  // Lattice size = LDIM^4
+#  define LDIM 7       // Lattice size = LDIM^4
 #endif
+#ifndef PRECISION
+#  define PRECISION 2  // 1->single, 2->double
+#endif
+
 #ifndef VERBOSE
-#  define VERBOSE 1  // valid values 0, 1 or 2
+#  define VERBOSE 1    // valid values: 0, 1 or 2
 #endif
 #ifndef DEBIG
 #  undef DEBUG
@@ -82,10 +85,12 @@ int main(int argc, char *argv[])
   cl::Device device=devices[0];
   // make the kernel
 #if defined VERBOSE && VERBOSE >= 2
-  std::cout << "Building Kernel" << std::endl;
+  char build_args[80];
+  sprintf(build_args, "-I. -DPRECISION=%d", PRECISION);
+  std::cout << "Building Kernel with: " << build_args << std::endl;
 #endif
   cl::Program program(context, loadProgram("m_mat_nn.cl"), false);
-  if (program.build("-I .") != CL_SUCCESS) {
+  if (program.build(build_args) != CL_SUCCESS) {
     std::cout << "ERROR: OpenCL kernel failed to build" << std::endl;
     exit(-1);
   }
