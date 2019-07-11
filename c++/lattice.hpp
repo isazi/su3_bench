@@ -23,7 +23,7 @@ typedef struct {
 } site __attribute__ ((aligned));
 
 // globals related to the lattice
+extern void init_link(su3_matrix *, Complx);
 extern void make_lattice(site *, int);
-extern void free_lattice(site *);
 
 #endif // _LATTICE_HPP

@@ -7,14 +7,20 @@ CFLAGS = -std=c99 -O3 -fopenmp
 #CC = icc
 #CFLAGS = -std=c99 -O3 -qopenmp -qopt-report=5 -qopt-report-phase=vec
 
-INCLUDES = -DN=32 #-DPRECISION=1 #-DOMP_TARGET
+INCLUDES = -DN=32 #-DPRECISION=1
 LDLIBS = -lm 
 
-bench: mult_su3_nn_bench.exe mult_su3_mat_vec_bench.exe mult_su3_mat_vec_sum_bench.exe \
-	mult_adj_su3_mat_vec_bench.exe scalar_mult_add_su3_vector_bench.exe
+all: mult_su3_nn_wtarget.exe mult_su3_nn_wotarget.exe \
+     mult_su3_mat_vec_bench.exe \
+     mult_su3_mat_vec_sum_bench.exe \
+     mult_adj_su3_mat_vec_bench.exe \
+     scalar_mult_add_su3_vector_bench.exe
 
-mult_su3_nn_bench.exe: Makefile mult_su3_nn_bench.c mysecond.o make_lattice.o lattice.h su3.h c99_su3_inline.h
+mult_su3_nn_wotarget.exe: Makefile mult_su3_nn_bench.c mysecond.o make_lattice.o lattice.h
 	$(CC) $(CFLAGS) $(INCLUDES) -o $@ mult_su3_nn_bench.c make_lattice.o mysecond.o $(LDLIBS)
+
+mult_su3_nn_wtarget.exe: Makefile mult_su3_nn_bench.c mysecond.o make_lattice.o lattice.h
+	$(CC) $(CFLAGS) -DOMP_TARGET $(INCLUDES) -o $@ mult_su3_nn_bench.c make_lattice.o mysecond.o $(LDLIBS)
 
 scalar_mult_add_su3_vector_bench.exe: Makefile scalar_mult_add_su3_vector_bench.c mysecond.o su3.h c99_su3_inline.h
 	$(CC) $(CFLAGS) $(INCLUDES) -o $@ scalar_mult_add_su3_vector_bench.c mysecond.o $(LDLIBS)
