@@ -54,23 +54,26 @@ int main(int argc, char *argv[])
   unsigned int wgsize=0;
   unsigned int iterations=ITERATIONS;
   unsigned int ldim=LDIM;
+  unsigned int verbose=VERBOSE;
 
   // parse command line for parameters
-  while ((opt=getopt(argc, argv, "i:n:g:")) != -1) {
+  while ((opt=getopt(argc, argv, "i:n:g:v:")) != -1) {
     switch (opt) {
     case 'i':
       iterations = atoi(optarg);
-      printf("Setting iteration count to %d\n", iterations);
       break;
     case 'n':
       ldim = atoi(optarg);
-      printf("Setting lattice dimentions to %d^4\n", ldim);
       break;
     case 'g':
       wgsize = atoi(optarg);
       break;
+    case 'v':
+      verbose = atoi(optarg);
+      break;
     default: 
-      fprintf(stderr, "Usage: %s [-i iterations] [-n lattice dimension] [-g workgroup size]\n", argv[0]);
+      fprintf(stderr, "Usage: %s [-i iterations] [-n lattice dimension] \
+[-g workgroup size] [-v verbosity]\n", argv[0]);
       exit (1);
     }
   }
@@ -110,36 +113,33 @@ int main(int argc, char *argv[])
   context.getInfo(CL_CONTEXT_DEVICES, &devices);
   cl::Device device=devices[0];
   // make the kernel
-#if defined VERBOSE && VERBOSE >= 2
   char build_args[80];
   sprintf(build_args, "-I. -DPRECISION=%d", PRECISION);
-  std::cout << "Building Kernel with: " << build_args << std::endl;
-#endif
+  if (verbose >= 2)
+    std::cout << "Building Kernel with: " << build_args << std::endl;
   cl::Program program(context, loadProgram("m_mat_nn.cl"), false);
   if (program.build(build_args) != CL_SUCCESS) {
     std::cout << "ERROR: OpenCL kernel failed to build" << std::endl;
     exit(1);
   }
   auto k_mat_nn = cl::make_kernel<cl::Buffer, cl::Buffer, cl::Buffer>(program, "k_mat_nn");
-#if defined VERBOSE && VERBOSE >= 2
-  {
+  if (verbose >= 2) {
     std::string s, v;
     device.getInfo(CL_DEVICE_VENDOR, &v);
     device.getInfo(CL_DEVICE_NAME, &s);
     std::cout << "Using device: " << v << ": " << s << std::endl;
   }
-#endif
 
   // Declare target storage and copy A and B
   auto d_a = cl::Buffer(context, begin(a), end(a), true);
   auto d_b = cl::Buffer(context, begin(b), end(b), true);
   auto d_c = cl::Buffer(context, CL_MEM_READ_WRITE, sizeof(site)*c.size());
 
-#if defined VERBOSE && VERBOSE >= 1
-  printf("Number of sites = %d^4\n", ldim);
-  printf("Executing %d iterations\n", iterations);
-  printf("Workgroup size set to %d\n", wgsize);
-#endif
+  if (verbose >= 1) {
+    printf("Number of sites = %d^4\n", ldim);
+    printf("Executing %d iterations\n", iterations);
+    printf("Workgroup size set to %d\n", wgsize);
+  }
   // benchmark loop
   auto tstart = Clock::now();
   for (int iters=0; iters<iterations; ++iters) {
@@ -151,9 +151,8 @@ int main(int argc, char *argv[])
   queue.finish(); 
   double ttotal = std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tstart).count();
   ttotal /= 1.0e6;
-#if defined VERBOSE && VERBOSE >= 1
-  printf("Total execution time = %.3f secs\n", ttotal);
-#endif
+  if (verbose >= 1)
+    printf("Total execution time = %.3f secs\n", ttotal);
 
   // each iter of above loop is (3*3)*(12 mult + 10 add) = 108 mult + 90 add = 198 ops
   double tflop = (double)iterations * total_sites * 4.0 * 198.0;
@@ -175,14 +174,14 @@ int main(int argc, char *argv[])
   if ( round(sum) != (4.0*sizeof(su3_matrix)/(sizeof(Complx))))
     printf("Checksum FAILED: Sum = %lf\n", sum);
 
-#if defined VERBOSE && VERBOSE >= 2
-  // check memory usage
-  printf("Total allocation for matrices = %.3f MiB\n", 
-         ((float)sizeof(site)*(a.capacity()+c.capacity())+sizeof(su3_matrix)*b.capacity())/1048576.0);
-  struct rusage usage;
-  if (getrusage(RUSAGE_SELF, &usage) == 0)
-    printf("Approximate memory usage = %.3f MiB\n", (float)usage.ru_maxrss/1024.0);
-#endif
+  if (verbose >= 2) {
+    // check memory usage
+    printf("Total allocation for matrices = %.3f MiB\n", 
+           ((float)sizeof(site)*(a.capacity()+c.capacity())+sizeof(su3_matrix)*b.capacity())/1048576.0);
+    struct rusage usage;
+    if (getrusage(RUSAGE_SELF, &usage) == 0)
+      printf("Approximate memory usage = %.3f MiB\n", (float)usage.ru_maxrss/1024.0);
+  }
 
 }
 
