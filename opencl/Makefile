@@ -1,21 +1,21 @@
 #
-CC = clang++
+CC = clang++-9
 CFLAGS = -std=c++11 -g -O3 -fopenmp -Wno-ignored-attributes -Wno-deprecated-declarations
-CFLAGS += -I$(CUDA_ROOT)/include
+CFLAGS += -I$(ROCM_OCL)/include
 
-INCLUDES = -DVERBOSE=2 -DITERATIONS=100 -DLDIM=32 -DPRECISION=1
+INCLUDES = -DVERBOSE=2 -DITERATIONS=100 -DLDIM=32
 LDLIBS = -lm 
-LDLIBS += -L$(CUDA_ROOT)/lib64 -lOpenCL
+LDLIBS += -L$(ROCM_OCL)/lib/x86_64 -lOpenCL
 
 DEPENDS = su3.hpp lattice.hpp
 
-mult_su3_nn_bench.exe: Makefile mult_su3_nn_bench.cpp make_lattice.o $(DEPENDS)
-	$(CC) $(CFLAGS) $(INCLUDES) -o $@ make_lattice.o mult_su3_nn_bench.cpp $(LDLIBS)
+all: mult_su3_nn_f64.exe mult_su3_nn_f32.exe
 
-make_lattice.o: Makefile make_lattice.cpp $(DEPENDS)
-	$(CC) $(CFLAGS) $(INCLUDES) -c make_lattice.cpp
+mult_su3_nn_f64.exe: Makefile mult_su3_nn_bench.cpp $(DEPENDS)
+	$(CC) $(CFLAGS) $(INCLUDES) -o $@ make_lattice.cpp mult_su3_nn_bench.cpp $(LDLIBS)
 
-all: mult_su3_nn_bench.exe
+mult_su3_nn_f32.exe: Makefile mult_su3_nn_bench.cpp $(DEPENDS)
+	$(CC) -DPRECISION=1 $(CFLAGS) $(INCLUDES) -o $@ make_lattice.cpp mult_su3_nn_bench.cpp $(LDLIBS)
 
 clean:
 	rm -f *.exe *.o
