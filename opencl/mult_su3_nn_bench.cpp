@@ -138,7 +138,8 @@ int main(int argc, char *argv[])
   if (verbose >= 1) {
     printf("Number of sites = %d^4\n", ldim);
     printf("Executing %d iterations\n", iterations);
-    printf("Workgroup size set to %d\n", wgsize);
+    if (wgsize != 0)
+      printf("Workgroup size set to %d\n", wgsize);
   }
   // benchmark loop
   auto tstart = Clock::now();
