@@ -3,7 +3,7 @@ CC = clang++-9
 CFLAGS = -std=c++11 -g -O3 -fopenmp -Wno-ignored-attributes -Wno-deprecated-declarations
 CFLAGS += -I$(ROCM_OCL)/include
 
-INCLUDES = -DVERBOSE=2 -DITERATIONS=100 -DLDIM=32
+INCLUDES = -DVERBOSE=2 -DITERATIONS=100 -DLDIM=32 #-DDEBUG
 LDLIBS = -lm 
 LDLIBS += -L$(ROCM_OCL)/lib/x86_64 -lOpenCL
 

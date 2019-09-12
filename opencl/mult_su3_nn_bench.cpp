@@ -31,9 +31,6 @@ typedef std::chrono::system_clock Clock;
 #ifndef VERBOSE
 #  define VERBOSE 1    // valid values: 0, 1 or 2
 #endif
-#ifndef DEBIG
-#  undef DEBUG
-#endif
 
 static inline std::string loadProgram(std::string input)
 {
@@ -114,7 +111,11 @@ int main(int argc, char *argv[])
   cl::Device device=devices[0];
   // make the kernel
   char build_args[80];
+#ifdef DEBUG
+  sprintf(build_args, "-I. -DPRECISION=%d -DDEBUG", PRECISION);
+#else
   sprintf(build_args, "-I. -DPRECISION=%d", PRECISION);
+#endif
   if (verbose >= 2)
     std::cout << "Building Kernel with: " << build_args << std::endl;
   cl::Program program(context, loadProgram("m_mat_nn.cl"), false);

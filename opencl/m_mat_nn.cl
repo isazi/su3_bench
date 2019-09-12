@@ -11,7 +11,7 @@ __kernel void k_mat_nn(
 {
   size_t mysite = get_global_id(0);
 #ifdef DEBUG
-  printf("mysite = %d\n", mysite);
+  printf("mysite = %d\n", (int)mysite);
 #endif
 
   for (int j=0; j<4; ++j) {
@@ -24,9 +24,9 @@ __kernel void k_mat_nn(
 #ifdef DEBUG
           if (mysite==0 && m==2)
           printf("a[%d][%d]->e[%d][%d]=%f b[%d][%d]->e[%d][%d]=%f c[%d][%d]->e[%d][%d]=%f\n",
-                  j,(int)mysite,k,m,a[mysite].link[j].e[k][m],
-                  j,(int)mysite,m,l,b[j].e[m][l],
-                  j,(int)mysite,k,l,c[mysite].link[j].e[k][l]);
+                  j,(int)mysite,k,m,a[mysite].link[j].e[k][m].real,
+                  j,(int)mysite,m,l,b[j].e[m][l].real,
+                  j,(int)mysite,k,l,c[mysite].link[j].e[k][l].real);
 #endif
         }
       }
