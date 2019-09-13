@@ -75,12 +75,12 @@ int main(int argc, char *argv[])
   unsigned int verbose=VERBOSE;
 
   // parse command line for parameters
-  while ((opt=getopt(argc, argv, "i:n:t:v:")) != -1) {
+  while ((opt=getopt(argc, argv, "i:l:t:v:")) != -1) {
     switch (opt) {
     case 'i':
       iterations = atoi(optarg);
       break;
-    case 'n':
+    case 'l':
       ldim = atoi(optarg);
       break;
     case 't':
@@ -90,7 +90,7 @@ int main(int argc, char *argv[])
       verbose = atoi(optarg);
       break;
     default: 
-      fprintf(stderr, "Usage: %s [-i iterations] [-n lattice dimension] \
+      fprintf(stderr, "Usage: %s [-i iterations] [-l lattice dimension] \
 [-t threads per block] [-v verbosity]\n", argv[0]);
       exit (1);
     }
@@ -132,14 +132,16 @@ int main(int argc, char *argv[])
   cudaMemcpy(d_a, a.data(), size_a, cudaMemcpyHostToDevice);
   cudaMemcpy(d_b, b.data(), size_b, cudaMemcpyHostToDevice);
 
+  blocksPerGrid = (total_sites + threadsPerBlock - 1)/threadsPerBlock;
+
   if (verbose >= 1) {
     printf("Number of sites = %d^4\n", ldim);
     printf("Executing %d iterations\n", iterations);
+    printf("Number of blocks set to %d\n", blocksPerGrid);
     printf("Threads per block set to %d\n", threadsPerBlock);
   }
 
   // benchmark loop
-  blocksPerGrid = (total_sites + threadsPerBlock - 1)/threadsPerBlock;
   clock_t tstart = clock();
   for (int iters=0; iters<iterations; ++iters) {
       k_mat_nn<<<blocksPerGrid, threadsPerBlock>>>(d_a, d_b, d_c, total_sites);
