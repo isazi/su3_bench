@@ -48,19 +48,23 @@ static inline std::string loadProgram(std::string input)
 int main(int argc, char *argv[])
 {
   int flags, opt;
-  unsigned int wgsize=0;
   unsigned int iterations=ITERATIONS;
   unsigned int ldim=LDIM;
+  unsigned int sites_per_wi = 1;
+  unsigned int wgsize = 0;
   unsigned int verbose=VERBOSE;
 
   // parse command line for parameters
-  while ((opt=getopt(argc, argv, "i:n:g:v:")) != -1) {
+  while ((opt=getopt(argc, argv, "i:l:s:g:v:")) != -1) {
     switch (opt) {
     case 'i':
       iterations = atoi(optarg);
       break;
-    case 'n':
+    case 'l':
       ldim = atoi(optarg);
+      break;
+    case 's':
+      sites_per_wi = atoi(optarg);
       break;
     case 'g':
       wgsize = atoi(optarg);
@@ -69,14 +73,23 @@ int main(int argc, char *argv[])
       verbose = atoi(optarg);
       break;
     default: 
-      fprintf(stderr, "Usage: %s [-i iterations] [-n lattice dimension] \
-[-g workgroup size] [-v verbosity]\n", argv[0]);
+      fprintf(stderr, "Usage: %s [-i iterations] [-l lattice dimension] \
+[-s sites per work item] [-g workgroup size] [-v verbosity]\n", argv[0]);
       exit (1);
     }
   }
 
   // allocate and initialize the working lattices and B link matrix
-  int total_sites = ldim*ldim*ldim*ldim;
+  unsigned int total_sites = ldim*ldim*ldim*ldim;
+  unsigned int total_wi = total_sites / sites_per_wi;
+  if (total_wi > total_sites) {
+    fprintf(stderr, "ERROR: total work items %d > total sites %d\n", total_wi, total_sites);
+    exit (1);
+  }
+  if (total_wi > 0 && total_wi < wgsize) {
+    fprintf(stderr, "ERROR: total work items %d < work group size %d\n", total_wi, wgsize);
+    exit (1);
+  }
   // A
   std::vector<site> a(total_sites);
   make_lattice(&a[0], ldim);
@@ -123,7 +136,7 @@ int main(int argc, char *argv[])
     std::cout << "ERROR: OpenCL kernel failed to build" << std::endl;
     exit(1);
   }
-  auto k_mat_nn = cl::make_kernel<cl::Buffer, cl::Buffer, cl::Buffer>(program, "k_mat_nn");
+  auto k_mat_nn = cl::make_kernel<int, cl::Buffer, cl::Buffer, cl::Buffer>(program, "k_mat_nn");
   if (verbose >= 2) {
     std::string s, v;
     device.getInfo(CL_DEVICE_VENDOR, &v);
@@ -139,16 +152,20 @@ int main(int argc, char *argv[])
   if (verbose >= 1) {
     printf("Number of sites = %d^4\n", ldim);
     printf("Executing %d iterations\n", iterations);
+    printf("Total work items = %d\n", total_wi);
     if (wgsize != 0)
-      printf("Workgroup size set to %d\n", wgsize);
+      printf("Workgroup size = %d\n", wgsize);
   }
   // benchmark loop
   auto tstart = Clock::now();
   for (int iters=0; iters<iterations; ++iters) {
-    if (wgsize > 0) // set the OpenCL workgroup size
-      k_mat_nn(cl::EnqueueArgs(queue, cl::NDRange(total_sites), cl::NDRange(wgsize)), d_a, d_b, d_c);
+    //if ((total_wi != 0) && (wgsize != 0)) // specify number of work items and workgroup size
+    //  k_mat_nn(cl::EnqueueArgs(queue, cl::NDRange(total_wi), cl::NDRange(wgsize)), total_sites, d_a, d_b, d_c);
+    // else if (wgsize > 0) // specify the workgroup size
+    if (wgsize > 0) // specify the workgroup size
+      k_mat_nn(cl::EnqueueArgs(queue, cl::NDRange(total_wi), cl::NDRange(wgsize)), total_sites, d_a, d_b, d_c);
     else  // let the runtime figure it out
-      k_mat_nn(cl::EnqueueArgs(queue, cl::NDRange(total_sites)), d_a, d_b, d_c);
+      k_mat_nn(cl::EnqueueArgs(queue, cl::NDRange(total_wi)), total_sites, d_a, d_b, d_c);
   }
   queue.finish(); 
   double ttotal = std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tstart).count();
