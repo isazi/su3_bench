@@ -1,0 +1,20 @@
+#
+# Mentor Graphics gcc
+# Note, -O2 and -O3 result in seg faults
+CC = x86_64-none-linux-gnu-gcc 
+CFLAGS = -std=c99 -fopenmp -foffload=-march=gfx900
+#export LD_LIBRARY_PATH=/opt/rocm/lib:/opt/mgc/embedded/codebench/x86_64-none-linux-gnu/lib64:${LD_LIBRARY_PATH}
+
+INCLUDES = -DITERATIONS=1 -DN=32 #-DPRECISION=1
+LDLIBS = -lm 
+
+all: mult_su3_nn_wtarget.exe mult_su3_nn_wotarget.exe
+
+mult_su3_nn_wtarget.exe: Makefile.odinson mult_su3_nn_bench.c lattice.h
+	$(CC) $(CFLAGS) -DOMP_TARGET $(INCLUDES) -o $@ mult_su3_nn_bench.c make_lattice.c $(LDLIBS)
+
+mult_su3_nn_wotarget.exe: Makefile.odinson mult_su3_nn_bench.c lattice.h
+	$(CC) $(CFLAGS) $(INCLUDES) -o $@ mult_su3_nn_bench.c make_lattice.c $(LDLIBS)
+
+clean:
+	rm -f *.exe *.o *.optrpt
