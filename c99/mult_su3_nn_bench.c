@@ -72,14 +72,13 @@ int main(int argc, char *argv[])
   printf("Number of sites = %d^4\n", N);
   printf("Executing %d iterations\n", ITERATIONS);
 # ifdef OMP_TARGET
-  #pragma omp target enter data map(to: lattice, b)
-  #pragma omp target exit data map(from: c)
-#endif
+  #pragma omp target enter data map(to: lattice[0:sites_on_node], b[0:4], c[0:sites_on_node])
   tstart = omp_get_wtime();
   for (iters=0; iters<ITERATIONS; ++iters) {
-# ifdef OMP_TARGET
     #pragma omp target teams distribute parallel for
 #else
+  tstart = omp_get_wtime();
+  for (iters=0; iters<ITERATIONS; ++iters) {
     #pragma omp parallel for
 # endif
     for(int i=0;i<sites_on_node;++i) {
@@ -98,15 +97,15 @@ int main(int argc, char *argv[])
   ttotal = omp_get_wtime() - tstart;
   printf("Total execution time = %.2f secs\n", ttotal);
 
+# ifdef OMP_TARGET
+  #pragma omp target exit data map(from: c[0:sites_on_node])
+#endif
   // each iter of above loop is (3*3)*(12 mult + 10 add) = 108 mult + 90 add = 198 ops
   tflop = (double)iters * sites_on_node * 4.0 * 198.0;
   printf("Total GFLOP/s = %f\n", tflop / ttotal / 1.0e9);
   
   // calculate a checksum
   sum = 0.0;
-# ifdef OMP_TARGET
-  #pragma omp target update from(c)
-#endif
   for (i=0;i<sites_on_node;++i) for(j=0;j<4;++j) for(k=0;k<3;++k) for(l=0;l<3;++l)
     sum += creal(c[i].link[j].e[k][l]);
   sum /= (double)sites_on_node;

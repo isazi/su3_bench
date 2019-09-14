@@ -2,7 +2,7 @@
 # GCC
 CC = clang
 CFLAGS = -std=c99 -O3 -fopenmp
-CFLAGS += -fopenmp-targets=nvptx64-nvidia-cuda
+CFLAGS += -ffast-math -fopenmp-targets=nvptx64-nvidia-cuda
 
 # Intel
 #CC = icc
