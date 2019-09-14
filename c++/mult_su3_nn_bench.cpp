@@ -36,55 +36,49 @@ int main(int argc, char *argv[])
   // C
   std::vector<site> c(total_sites);
 
-#ifdef DEBUG
-  {
-    printf("Total number of sites = %d\n", total_sites);
-    printf("Sizeof site is %lu bytes\n", sizeof(site));
-    printf("Sizeof matrix is %lu bytes\n", sizeof(su3_matrix));
-    printf("Sizeof lattice is %f MB\n", (float)sizeof(site)*a.size()/1048576.0);
-    printf("Sizeof b[] is %f MB\n", (float)sizeof(su3_matrix)*b.size()/1048576.0);
-    printf("Sizeof c[] is %f MB\n", (float)sizeof(su3_matrix)*c.size()/1048576.0);
-    // check alignment
-    for (int i=0; i<3; ++i) {
-      site *s = &a[i];
-      printf("Address of site %d is 0x%lx, modulo %d = %ld\n", 
-             i, (unsigned long)s, ALIGN_N, (unsigned long)s % ALIGN_N);
-    }
-  }
-#endif
-
 #if defined VERBOSE && VERBOSE >= 1
   printf("Number of sites = %d^4\n", LDIM);
   printf("Executing %d iterations\n", ITERATIONS);
 #endif
+
   // benchmark loop
-# ifdef OMP_TARGET
-    #pragma omp target enter data map(to: a, b)
-    #pragma omp target exit data map(from: c)
-#endif
+  site *p_a, *p_c;
+  su3_matrix *p_b;
+  size_t len_a, len_b, len_c;
+  p_a = a.data(); len_a = a.size();
+  p_b = b.data(); len_b = b.size();
+  p_c = c.data(); len_c = c.size();
+  double ttotal = 0.0;
+#ifdef OMP_TARGET
+  #pragma omp target enter data map(to: p_a[0:len_a], p_b[0:len_b], p_c[0:len_c])
   auto tstart = Clock::now();
   for (int iters=0; iters<ITERATIONS; ++iters) {
-# ifdef OMP_TARGET
     #pragma omp target teams distribute parallel for
 #else
+  auto tstart = Clock::now();
+  for (int iters=0; iters<ITERATIONS; ++iters) {
     #pragma omp parallel for
 #endif
     for(int i=0;i<total_sites;++i) {
       for (int j=0; j<4; ++j) {
         for(int k=0;k<3;k++) {
           for(int l=0;l<3;l++){
-            c[i].link[j].e[k][l]=Complx(0.0,0.0);
+            p_c[i].link[j].e[k][l]=Complx(0.0,0.0);
             for(int m=0;m<3;m++) {
-              c[i].link[j].e[k][l] += a[i].link[j].e[k][m] * b[j].e[m][l];
+              p_c[i].link[j].e[k][l] += p_a[i].link[j].e[k][m] * p_b[j].e[m][l];
             }
           }
         }
       }
     }
   }
-  double ttotal = std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tstart).count() / 1.0e6;
+  ttotal = std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tstart).count() / 1.0e6;
 #if defined VERBOSE && VERBOSE >= 1
   printf("Total execution time = %.3f secs\n", ttotal);
+#endif
+
+#ifdef OMP_TARGET
+  #pragma omp target exit data map(from: p_c[0:len_c])
 #endif
 
   // each iter of above loop is (3*3)*(12 mult + 10 add) = 108 mult + 90 add = 198 ops
@@ -93,9 +87,6 @@ int main(int argc, char *argv[])
   
   // calculate a checksum
   double sum = 0.0;
-# ifdef OMP_TARGET
-  #pragma omp target update from(c)
-#endif
   #pragma omp parallel for reduction(+:sum)
   for (int i=0;i<total_sites;++i) for(int j=0;j<4;++j) for(int k=0;k<3;++k) for(int l=0;l<3;++l) {
     sum += real(c[i].link[j].e[k][l]);
