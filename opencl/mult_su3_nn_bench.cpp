@@ -159,9 +159,6 @@ int main(int argc, char *argv[])
   // benchmark loop
   auto tstart = Clock::now();
   for (int iters=0; iters<iterations; ++iters) {
-    //if ((total_wi != 0) && (wgsize != 0)) // specify number of work items and workgroup size
-    //  k_mat_nn(cl::EnqueueArgs(queue, cl::NDRange(total_wi), cl::NDRange(wgsize)), total_sites, d_a, d_b, d_c);
-    // else if (wgsize > 0) // specify the workgroup size
     if (wgsize > 0) // specify the workgroup size
       k_mat_nn(cl::EnqueueArgs(queue, cl::NDRange(total_wi), cl::NDRange(wgsize)), total_sites, d_a, d_b, d_c);
     else  // let the runtime figure it out
