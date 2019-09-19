@@ -3,7 +3,7 @@ CC = clang++
 CFLAGS = -std=c++14 -fsycl
 LDLIBS = -lOpenCL
 
-INCLUDES = -DITERATIONS=100 -DLDIM=32
+INCLUDES = -DITERATIONS=1 -DLDIM=32
 
 DEPENDS = lattice.hpp
 
