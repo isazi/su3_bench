@@ -94,7 +94,9 @@ int main(int argc, char *argv[])
   // put SYCL kernel in its own block to ensure destructors clean up when leaving the block
   { 
     // Create a SYCL queue
-    cl::sycl::queue queue;
+    cl::sycl::queue queue({cl::sycl::gpu_selector()});
+    if (verbose >= 2)
+      std::cout << "Using device " << queue.get_device().get_info<cl::sycl::info::device::name>() << "\n";
 
     // wrap arrays in SYCL buffers
     // since buffers are inside the SYCL block, c_buf gets copied back to the host when it's destroyed
