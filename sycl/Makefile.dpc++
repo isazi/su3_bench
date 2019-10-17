@@ -4,7 +4,6 @@ CFLAGS = -std=c++14 -fsycl
 LDLIBS = -lOpenCL
 
 INCLUDES = -DITERATIONS=1 -DLDIM=32
-
 DEPENDS = lattice.hpp
 
 all: mult_su3_nn_f64.exe mult_su3_nn_f32.exe

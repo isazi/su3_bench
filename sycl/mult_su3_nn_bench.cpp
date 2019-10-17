@@ -27,6 +27,9 @@ typedef std::chrono::system_clock Clock;
 #  define VERBOSE 1    // valid values: 0, 1 or 2
 #endif
 
+//template <typename T>
+class my_kernel;
+
 int main(int argc, char *argv[])
 {
   int flags, opt;
@@ -100,9 +103,9 @@ int main(int argc, char *argv[])
 
     // wrap arrays in SYCL buffers
     // since buffers are inside the SYCL block, c_buf gets copied back to the host when it's destroyed
-    cl::sycl::buffer<site, 1> a_buf {&a[0], cl::sycl::range<1> {total_sites}};
-    cl::sycl::buffer<su3_matrix, 1> b_buf {&b[0], cl::sycl::range<1> {4}};
-    cl::sycl::buffer<site, 1> c_buf {&c[0], cl::sycl::range<1> {total_sites}};
+    cl::sycl::buffer<site, 1> a_buf {a.data(), cl::sycl::range<1> {total_sites}};
+    cl::sycl::buffer<su3_matrix, 1> b_buf {b.data(), cl::sycl::range<1> {4}};
+    cl::sycl::buffer<site, 1> c_buf {c.data(), cl::sycl::range<1> {total_sites}};
 
     // create a command_group to issue commands
     auto tstart = Clock::now();
@@ -114,15 +117,16 @@ int main(int argc, char *argv[])
         auto d_c = c_buf.get_access<cl::sycl::access::mode::read_write>(cgh);
 
         // Lambda function defines the kernel scope
-        cgh.parallel_for<class sycl_kernel>(cl::sycl::range<1> {total_sites}, [=](cl::sycl::nd_item<1> idx) { 
-          int i = idx.get_global_id(0);
+        //cgh.parallel_for<class my_kernel>(cl::sycl::range<1> {total_sites}, [=](cl::sycl::nd_item<1> idx) { 
+        cgh.parallel_for<class my_kernel>(cl::sycl::range<1> {total_sites}, [=](cl::sycl::id<1> idx) { 
+          //int i = idx.get_global_id(0);
           for (int j=0; j<4; ++j) {
             for (int k=0;k<3;k++) {
               for (int l=0;l<3;l++){
-                d_c[i].link[j].e[k][l].real=0.0;
-                d_c[i].link[j].e[k][l].imag=0.0;
+                d_c[idx].link[j].e[k][l].real=0.0;
+                d_c[idx].link[j].e[k][l].imag=0.0;
                 for (int m=0;m<3;m++) {
-                  CMULSUM(d_a[i].link[j].e[k][m], d_b[j].e[m][l], d_c[i].link[j].e[k][l]);
+                  CMULSUM(d_a[idx].link[j].e[k][m], d_b[j].e[m][l], d_c[idx].link[j].e[k][l]);
                 }
               }
             }

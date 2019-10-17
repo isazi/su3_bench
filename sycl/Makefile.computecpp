@@ -1,0 +1,26 @@
+SYCL = ${HOME}/opt/ComputeCpp-CE-1.1.5-Ubuntu-16.04-x86_64
+SYCL_OPTIONS = -O2 -std=c++14 -no-serial-memop
+CPU_OPTIONS = -sycl -intelspirmetadata -sycl-target spir64
+GPU_OPTIONS = -sycl -sycl-target ptx64
+OPENCL = ${CUDA_ROOT}
+
+CC = g++
+CFLAGS = -g -std=c++11 -Wno-ignored-attributes
+
+INCLUDES = -DITERATIONS=1 -DLDIM=32 -I${SYCL}/include -I${OPENCL}/include
+DEPENDS = lattice.hpp
+LIBS = -L${SYCL}/lib -L${OPENCL}/lib64 -lComputeCpp -lOpenCL
+
+all: mult_su3_nn_f32.exe mult_su3_nn_f64.exe
+
+mult_su3_nn_f32.exe: mult_su3_nn_bench.cpp $(DEPENDS)
+	compute++ ${SYCL_OPTIONS} ${GPU_OPTIONS} -DPRECISION=1  ${INCLUDES} -o $@.ptx64.sycl -c mult_su3_nn_bench.cpp 
+	${CC} ${CFLAGS} -DPRECISION=1 ${INCLUDES} -include $@.ptx64.sycl make_lattice.cpp mult_su3_nn_bench.cpp -o $@ ${LIBS}
+
+mult_su3_nn_f64.exe: mult_su3_nn_bench.cpp $(DEPENDS)
+	compute++ ${SYCL_OPTIONS} ${GPU_OPTIONS} ${INCLUDES} -o $@.ptx64.sycl -c mult_su3_nn_bench.cpp 
+	${CC} ${CFLAGS} ${INCLUDES} ${INCLUDES} -include $@.ptx64.sycl make_lattice.cpp mult_su3_nn_bench.cpp -o $@ ${LIBS}
+
+clean:
+	rm -rf *.exe *.sycl
+
