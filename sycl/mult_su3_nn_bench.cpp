@@ -97,15 +97,15 @@ int main(int argc, char *argv[])
   // put SYCL kernel in its own block to ensure destructors clean up when leaving the block
   { 
     // Create a SYCL queue
-    cl::sycl::queue queue({cl::sycl::gpu_selector()});
+    cl::sycl::queue queue;
     if (verbose >= 2)
       std::cout << "Using device " << queue.get_device().get_info<cl::sycl::info::device::name>() << "\n";
 
     // wrap arrays in SYCL buffers
     // since buffers are inside the SYCL block, c_buf gets copied back to the host when it's destroyed
-    cl::sycl::buffer<site, 1> a_buf {a.data(), cl::sycl::range<1> {total_sites}};
+    cl::sycl::buffer<site, 1>       a_buf {a.data(), cl::sycl::range<1> {total_sites}};
     cl::sycl::buffer<su3_matrix, 1> b_buf {b.data(), cl::sycl::range<1> {4}};
-    cl::sycl::buffer<site, 1> c_buf {c.data(), cl::sycl::range<1> {total_sites}};
+    cl::sycl::buffer<site, 1>       c_buf {c.data(), cl::sycl::range<1> {total_sites}};
 
     // create a command_group to issue commands
     auto tstart = Clock::now();
@@ -117,9 +117,7 @@ int main(int argc, char *argv[])
         auto d_c = c_buf.get_access<cl::sycl::access::mode::read_write>(cgh);
 
         // Lambda function defines the kernel scope
-        //cgh.parallel_for<class my_kernel>(cl::sycl::range<1> {total_sites}, [=](cl::sycl::nd_item<1> idx) { 
         cgh.parallel_for<class my_kernel>(cl::sycl::range<1> {total_sites}, [=](cl::sycl::id<1> idx) { 
-          //int i = idx.get_global_id(0);
           for (int j=0; j<4; ++j) {
             for (int k=0;k<3;k++) {
               for (int l=0;l<3;l++){
