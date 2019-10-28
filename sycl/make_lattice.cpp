@@ -25,7 +25,6 @@ void make_lattice(site *s, int n) {
         s[i].parity=EVEN;
       else
         s[i].parity=ODD;
-//      init_link(&s[i].link[0], Complx(1.0,0.0));
       Complx val = {1.0, 0.0};
       init_link(&s[i].link[0], val);
     }

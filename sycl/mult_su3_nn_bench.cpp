@@ -27,8 +27,57 @@ typedef std::chrono::system_clock Clock;
 #  define VERBOSE 1    // valid values: 0, 1 or 2
 #endif
 
-//template <typename T>
+// Global variables
 class my_kernel;
+unsigned int verbose=VERBOSE;
+
+double k_mat_nn(const std::vector<site> &a, const std::vector<su3_matrix> &b, std::vector<site> &c, 
+              const unsigned int total_sites, const unsigned int iterations)
+{ 
+  // Create a SYCL queue
+  cl::sycl::queue queue;
+  if (verbose >= 2)
+    std::cout << "Using device " << queue.get_device().get_info<cl::sycl::info::device::name>() << "\n";
+
+  // wrap arrays in SYCL buffers
+  // since buffers are inside the SYCL block, c_buf gets copied back to the host when it's destroyed
+  cl::sycl::buffer<site, 1>       a_buf {a.data(), cl::sycl::range<1> {total_sites}};
+  cl::sycl::buffer<su3_matrix, 1> b_buf {b.data(), cl::sycl::range<1> {4}};
+  cl::sycl::buffer<site, 1>       c_buf {c.data(), cl::sycl::range<1> {total_sites}};
+
+  // benchmark loop
+  auto tstart = Clock::now();
+  for (int iters=0; iters<iterations; ++iters) {
+    // create a command_group to issue commands
+    queue.submit([&](cl::sycl::handler& cgh) {
+      // request access to the host buffers
+      auto d_a = a_buf.get_access<cl::sycl::access::mode::read>(cgh);
+      auto d_b = b_buf.get_access<cl::sycl::access::mode::read>(cgh);
+      auto d_c = c_buf.get_access<cl::sycl::access::mode::read_write>(cgh);
+
+      // Lambda function defines the kernel scope
+      cgh.parallel_for<class my_kernel>(cl::sycl::range<1> {total_sites}, [=](cl::sycl::id<1> idx) { 
+        for (int j=0; j<4; ++j) {
+          for (int k=0;k<3;k++) {
+            for (int l=0;l<3;l++){
+              d_c[idx].link[j].e[k][l].real=0.0;
+              d_c[idx].link[j].e[k][l].imag=0.0;
+              for (int m=0;m<3;m++) {
+                CMULSUM(d_a[idx].link[j].e[k][m], d_b[j].e[m][l], d_c[idx].link[j].e[k][l]);
+              }
+            }
+          }
+        }
+      }); // end of the kernel function
+    });   // end of our commands for this queue
+  } // end of iteration loop
+
+  // wait for all queue submissions to complete
+  queue.wait();
+  double ttotal = std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tstart).count();
+  return (ttotal /= 1.0e6);
+
+} // end of SYCL block, all objects are destroyed, and c_buf data copied back to the host
 
 int main(int argc, char *argv[])
 {
@@ -37,7 +86,6 @@ int main(int argc, char *argv[])
   unsigned int ldim=LDIM;
   unsigned int sites_per_wi = 1;
   unsigned int wgsize = 0;
-  unsigned int verbose=VERBOSE;
 
   // parse command line for parameters
   while ((opt=getopt(argc, argv, "i:l:s:g:v:")) != -1) {
@@ -77,11 +125,11 @@ int main(int argc, char *argv[])
   }
   // A
   std::vector<site> a(total_sites);
-  make_lattice(&a[0], ldim);
+  make_lattice(a.data(), ldim);
   // B
   std::vector<su3_matrix> b(4);
   Complx val = {1.0/3.0,0.0};
-  init_link(&b[0], val);
+  init_link(b.data(), val);
   // C
   std::vector<site> c(total_sites);
 
@@ -93,61 +141,19 @@ int main(int argc, char *argv[])
       printf("Workgroup size = %d\n", wgsize);
   }
 
-  // benchmark loop
-  // put SYCL kernel in its own block to ensure destructors clean up when leaving the block
-  { 
-    // Create a SYCL queue
-    cl::sycl::queue queue;
-    if (verbose >= 2)
-      std::cout << "Using device " << queue.get_device().get_info<cl::sycl::info::device::name>() << "\n";
+  // initial call to force kernel compile
+  k_mat_nn(a, b, c, total_sites, 1);
 
-    // wrap arrays in SYCL buffers
-    // since buffers are inside the SYCL block, c_buf gets copied back to the host when it's destroyed
-    cl::sycl::buffer<site, 1>       a_buf {a.data(), cl::sycl::range<1> {total_sites}};
-    cl::sycl::buffer<su3_matrix, 1> b_buf {b.data(), cl::sycl::range<1> {4}};
-    cl::sycl::buffer<site, 1>       c_buf {c.data(), cl::sycl::range<1> {total_sites}};
+  // benchmark call
+  double ttotal = k_mat_nn(a, b, c, total_sites, iterations);
 
-    // create a command_group to issue commands
-    auto tstart = Clock::now();
-    for (int iters=0; iters<iterations; ++iters) {
-      queue.submit([&](cl::sycl::handler& cgh) {
-        // request access to the host buffers
-        auto d_a = a_buf.get_access<cl::sycl::access::mode::read>(cgh);
-        auto d_b = b_buf.get_access<cl::sycl::access::mode::read>(cgh);
-        auto d_c = c_buf.get_access<cl::sycl::access::mode::read_write>(cgh);
+  // calculate flops/s, etc.
+  if (verbose >= 1)
+    printf("Total execution time = %.3f secs\n", ttotal);
+  // each iter of above loop is (3*3)*(12 mult + 10 add) = 108 mult + 90 add = 198 ops
+  double tflop = (double)iterations * total_sites * 4.0 * 198.0;
+  printf("Total GFLOP/s = %.3f\n", tflop / ttotal / 1.0e9);
 
-        // Lambda function defines the kernel scope
-        cgh.parallel_for<class my_kernel>(cl::sycl::range<1> {total_sites}, [=](cl::sycl::id<1> idx) { 
-          for (int j=0; j<4; ++j) {
-            for (int k=0;k<3;k++) {
-              for (int l=0;l<3;l++){
-                d_c[idx].link[j].e[k][l].real=0.0;
-                d_c[idx].link[j].e[k][l].imag=0.0;
-                for (int m=0;m<3;m++) {
-                  CMULSUM(d_a[idx].link[j].e[k][m], d_b[j].e[m][l], d_c[idx].link[j].e[k][l]);
-                }
-              }
-            }
-          }
-        }); // end of the kernel function
-      });   // end of our commands for this queue
-    } // end of iteration loop
-
-    // wait for all queue submissions to complete
-    queue.wait();
-
-    // Capture total time, calculate flops/s, etc.
-    double ttotal = std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tstart).count();
-    ttotal /= 1.0e6;
-    if (verbose >= 1)
-      printf("Total execution time = %.3f secs\n", ttotal);
-
-    // each iter of above loop is (3*3)*(12 mult + 10 add) = 108 mult + 90 add = 198 ops
-    double tflop = (double)iterations * total_sites * 4.0 * 198.0;
-    printf("Total GFLOP/s = %.3f\n", tflop / ttotal / 1.0e9);
-
-  } // end of SYCL block, all objects are destroyed, and c_buf data copied back to the host
-  
   // calculate a checksum
   double sum = 0.0;
   #pragma omp parallel for reduction(+:sum)
@@ -159,14 +165,13 @@ int main(int argc, char *argv[])
   if ( round(sum) != (4.0*sizeof(su3_matrix)/(sizeof(Complx))))
     printf("Checksum FAILED: Sum = %lf\n", sum);
 
+  // check memory usage
   if (verbose >= 2) {
-    // check memory usage
     printf("Total allocation for matrices = %.3f MiB\n", 
            ((float)sizeof(site)*(a.capacity()+c.capacity())+sizeof(su3_matrix)*b.capacity())/1048576.0);
     struct rusage usage;
     if (getrusage(RUSAGE_SELF, &usage) == 0)
       printf("Approximate memory usage = %.3f MiB\n", (float)usage.ru_maxrss/1024.0);
   }
-
 }
 

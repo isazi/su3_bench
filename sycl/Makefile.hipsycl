@@ -3,7 +3,7 @@ CC = syclcc-clang
 CFLAGS = -Wno-c99-designator -g
 CFLAGS += --hipsycl-platform=cpu
 
-INCLUDES = -DITERATIONS=1 -DLDIM=32
+INCLUDES = -DITERATIONS=10 -DLDIM=32
 
 DEPENDS = lattice.hpp
 
