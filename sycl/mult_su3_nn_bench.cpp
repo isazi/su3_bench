@@ -27,17 +27,33 @@ typedef std::chrono::system_clock Clock;
 #  define VERBOSE 1    // valid values: 0, 1 or 2
 #endif
 
+#define USE_ND_ITEM
+
 // Global variables
 class my_kernel;
 unsigned int verbose=VERBOSE;
 
 double k_mat_nn(const std::vector<site> &a, const std::vector<su3_matrix> &b, std::vector<site> &c, 
-              const unsigned int total_sites, const unsigned int iterations)
+              const size_t total_sites, size_t wgsize, const size_t iterations)
 { 
   // Create a SYCL queue
   cl::sycl::queue queue;
   if (verbose >= 2)
     std::cout << "Using device " << queue.get_device().get_info<cl::sycl::info::device::name>() << "\n";
+
+#ifdef USE_ND_ITEM
+  if (wgsize == 0) {
+    wgsize = queue.get_device().get_info<cl::sycl::info::device::max_work_group_size>();
+    if (verbose >= 1)
+      std::cout << "Setting workgroup size to " << wgsize << "\n";
+    if (verbose >= 2) {
+      std::cout << "max compute units = " 
+	        << queue.get_device().get_info<cl::sycl::info::device::max_compute_units>() << "\n";
+      std::cout << "max workgroup size = " 
+	        << queue.get_device().get_info<cl::sycl::info::device::max_work_group_size>() << "\n";
+    }
+  }
+#endif
 
   // wrap arrays in SYCL buffers
   // since buffers are inside the SYCL block, c_buf gets copied back to the host when it's destroyed
@@ -56,7 +72,12 @@ double k_mat_nn(const std::vector<site> &a, const std::vector<su3_matrix> &b, st
       auto d_c = c_buf.get_access<cl::sycl::access::mode::read_write>(cgh);
 
       // Lambda function defines the kernel scope
+#ifdef USE_ND_ITEM
+      cgh.parallel_for<class my_kernel>(cl::sycl::nd_range<1> {total_sites, wgsize}, [=](cl::sycl::nd_item<1> item) { 
+        size_t idx = item.get_global_id(0);
+#else
       cgh.parallel_for<class my_kernel>(cl::sycl::range<1> {total_sites}, [=](cl::sycl::id<1> idx) { 
+#endif
         for (int j=0; j<4; ++j) {
           for (int k=0;k<3;k++) {
             for (int l=0;l<3;l++){
@@ -82,10 +103,9 @@ double k_mat_nn(const std::vector<site> &a, const std::vector<su3_matrix> &b, st
 int main(int argc, char *argv[])
 {
   int flags, opt;
-  unsigned int iterations=ITERATIONS;
-  unsigned int ldim=LDIM;
-  unsigned int sites_per_wi = 1;
-  unsigned int wgsize = 0;
+  size_t iterations=ITERATIONS;
+  size_t ldim=LDIM;
+  size_t wgsize = 32;
 
   // parse command line for parameters
   while ((opt=getopt(argc, argv, "i:l:s:g:v:")) != -1) {
@@ -96,9 +116,6 @@ int main(int argc, char *argv[])
     case 'l':
       ldim = atoi(optarg);
       break;
-    case 's':
-      sites_per_wi = atoi(optarg);
-      break;
     case 'g':
       wgsize = atoi(optarg);
       break;
@@ -107,22 +124,13 @@ int main(int argc, char *argv[])
       break;
     default: 
       fprintf(stderr, "Usage: %s [-i iterations] [-l lattice dimension] \
-[-s sites per work item] [-g workgroup size] [-v verbosity]\n", argv[0]);
+[-g workgroup size] [-v verbosity]\n", argv[0]);
       exit (1);
     }
   }
 
   // allocate and initialize the working lattices and B link matrix
-  unsigned int total_sites = ldim*ldim*ldim*ldim;
-  unsigned int total_wi = total_sites / sites_per_wi;
-  if (total_wi > total_sites) {
-    fprintf(stderr, "ERROR: total work items %d > total sites %d\n", total_wi, total_sites);
-    exit (1);
-  }
-  if (total_wi > 0 && total_wi < wgsize) {
-    fprintf(stderr, "ERROR: total work items %d < work group size %d\n", total_wi, wgsize);
-    exit (1);
-  }
+  size_t total_sites = ldim*ldim*ldim*ldim;
   // A
   std::vector<site> a(total_sites);
   make_lattice(a.data(), ldim);
@@ -134,18 +142,19 @@ int main(int argc, char *argv[])
   std::vector<site> c(total_sites);
 
   if (verbose >= 1) {
-    printf("Number of sites = %d^4\n", ldim);
-    printf("Executing %d iterations\n", iterations);
-    printf("Total work items = %d\n", total_wi);
+    printf("Number of sites = %zu^4\n", ldim);
+    printf("Executing %zu iterations\n", iterations);
     if (wgsize != 0)
-      printf("Workgroup size = %d\n", wgsize);
+      printf("Workgroup size = %zu\n", wgsize);
   }
 
   // initial call to force kernel compile
-  k_mat_nn(a, b, c, total_sites, 1);
+  double tbuild = k_mat_nn(a, b, c, total_sites, wgsize, 1);
+  if (verbose >= 2)
+    printf("Time to build kernel = %.3f secs\n", tbuild);
 
   // benchmark call
-  double ttotal = k_mat_nn(a, b, c, total_sites, iterations);
+  double ttotal = k_mat_nn(a, b, c, total_sites, wgsize, iterations);
 
   // calculate flops/s, etc.
   if (verbose >= 1)
