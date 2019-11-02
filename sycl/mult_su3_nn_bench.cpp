@@ -93,13 +93,15 @@ double k_mat_nn(const std::vector<site> &a, const std::vector<su3_matrix> &b, st
         for (int j=0; j<4; ++j) {
           for (int k=0;k<3;k++) {
             for (int l=0;l<3;l++){
+#if 1
               d_c[idx].link[j].e[k][l].real=0.0;
               d_c[idx].link[j].e[k][l].imag=0.0;
-#if 0
               for (int m=0;m<3;m++) {
                 CMULSUM(d_a[idx].link[j].e[k][m], d_b[j].e[m][l], d_c[idx].link[j].e[k][l]);
 		//d_c[idx].link[j].e[k][l].real += d_a[idx].link[j].e[k][m].real * d_b[j].e[m][l].real;
               }
+#else
+	      ;
 #endif
             }
           }

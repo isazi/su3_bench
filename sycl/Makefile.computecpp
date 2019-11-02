@@ -1,4 +1,5 @@
-SYCL = ${HOME}/opt/ComputeCpp-CE-1.1.5-Ubuntu-16.04-x86_64
+# depends on sourcing ~/.bashrc.computecpp
+SYCL = ${SYCL_HOME}
 SYCL_OPTIONS = -O2 -std=c++14 -no-serial-memop -Wsycl-pedantic
 CPU_OPTIONS = -sycl -intelspirmetadata -sycl-target spir64
 GPU_OPTIONS = -sycl -sycl-target ptx64
