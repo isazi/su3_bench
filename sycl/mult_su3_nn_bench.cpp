@@ -41,6 +41,14 @@ double k_mat_nn(const std::vector<site> &a, const std::vector<su3_matrix> &b, st
   if (verbose >= 2)
     std::cout << "Using device " << queue.get_device().get_info<cl::sycl::info::device::name>() << "\n";
 
+  // Pre-build the kernel
+  auto build_start = Clock::now();
+  cl::sycl::program program = cl::sycl::program(queue.get_context());
+  program.build_with_kernel_type<my_kernel>();
+  double build_time = std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-build_start).count();
+  if (verbose >= 2)
+    std::cout << "Time to build kernel = " << build_time/1.0e6 << " secs\n";
+
 #ifdef USE_ND_ITEM
   if (wgsize == 0) {
     wgsize = queue.get_device().get_info<cl::sycl::info::device::max_work_group_size>();
@@ -55,11 +63,11 @@ double k_mat_nn(const std::vector<site> &a, const std::vector<su3_matrix> &b, st
   }
 #endif
 
-  // wrap arrays in SYCL buffers
-  // since buffers are inside the SYCL block, c_buf gets copied back to the host when it's destroyed
+  // wrap arrays in SYCL buffers, suppling global memory pointer implicitly copies the data to the device
   cl::sycl::buffer<site, 1>       a_buf {a.data(), cl::sycl::range<1> {total_sites}};
   cl::sycl::buffer<su3_matrix, 1> b_buf {b.data(), cl::sycl::range<1> {4}};
-  cl::sycl::buffer<site, 1>       c_buf {c.data(), cl::sycl::range<1> {total_sites}};
+  // just create the c buffer on the device, no copy necessary
+  cl::sycl::buffer<site, 1>       c_buf {cl::sycl::range<1> {total_sites}};
 
   // benchmark loop
   auto tstart = Clock::now();
@@ -69,36 +77,47 @@ double k_mat_nn(const std::vector<site> &a, const std::vector<su3_matrix> &b, st
       // request access to the host buffers
       auto d_a = a_buf.get_access<cl::sycl::access::mode::read>(cgh);
       auto d_b = b_buf.get_access<cl::sycl::access::mode::read>(cgh);
-      auto d_c = c_buf.get_access<cl::sycl::access::mode::read_write>(cgh);
+      auto d_c = c_buf.get_access<cl::sycl::access::mode::write>(cgh);
 
       // Lambda function defines the kernel scope
 #ifdef USE_ND_ITEM
-      cgh.parallel_for<class my_kernel>(cl::sycl::nd_range<1> {total_sites, wgsize}, [=](cl::sycl::nd_item<1> item) { 
+      cgh.parallel_for<class my_kernel>(program.get_kernel<my_kernel>(), 
+        cl::sycl::nd_range<1> {total_sites, wgsize}, 
+	[=](cl::sycl::nd_item<1> item) { 
         size_t idx = item.get_global_id(0);
 #else
-      cgh.parallel_for<class my_kernel>(cl::sycl::range<1> {total_sites}, [=](cl::sycl::id<1> idx) { 
+      cgh.parallel_for<class my_kernel>(program.get_kernel<my_kernel>(), 
+        cl::sycl::range<1> {total_sites}, 
+	[=](cl::sycl::id<1> idx) { 
 #endif
         for (int j=0; j<4; ++j) {
           for (int k=0;k<3;k++) {
             for (int l=0;l<3;l++){
               d_c[idx].link[j].e[k][l].real=0.0;
               d_c[idx].link[j].e[k][l].imag=0.0;
+#if 0
               for (int m=0;m<3;m++) {
                 CMULSUM(d_a[idx].link[j].e[k][m], d_b[j].e[m][l], d_c[idx].link[j].e[k][l]);
+		//d_c[idx].link[j].e[k][l].real += d_a[idx].link[j].e[k][m].real * d_b[j].e[m][l].real;
               }
+#endif
             }
           }
         }
-      }); // end of the kernel function
-    });   // end of our commands for this queue
+      }); // end of the kernel lambda function
+    });   // end of commands group
   } // end of iteration loop
-
-  // wait for all queue submissions to complete
   queue.wait();
-  double ttotal = std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tstart).count();
-  return (ttotal /= 1.0e6);
 
-} // end of SYCL block, all objects are destroyed, and c_buf data copied back to the host
+  double ttotal = std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tstart).count();
+
+  // Copy the C buffer back to host memory
+  auto d_c = c_buf.get_access<cl::sycl::access::mode::read>();
+  for (size_t i = 0; i < total_sites; ++i)
+	  c[i] = d_c[i];
+
+  return (ttotal /= 1.0e6);
+} // end of SYCL block
 
 int main(int argc, char *argv[])
 {
@@ -148,17 +167,12 @@ int main(int argc, char *argv[])
       printf("Workgroup size = %zu\n", wgsize);
   }
 
-  // initial call to force kernel compile
-  double tbuild = k_mat_nn(a, b, c, total_sites, wgsize, 1);
-  if (verbose >= 2)
-    printf("Time to build kernel = %.3f secs\n", tbuild);
-
   // benchmark call
   double ttotal = k_mat_nn(a, b, c, total_sites, wgsize, iterations);
-
-  // calculate flops/s, etc.
   if (verbose >= 1)
     printf("Total execution time = %.3f secs\n", ttotal);
+
+  // calculate flops/s, etc.
   // each iter of above loop is (3*3)*(12 mult + 10 add) = 108 mult + 90 add = 198 ops
   double tflop = (double)iterations * total_sites * 4.0 * 198.0;
   printf("Total GFLOP/s = %.3f\n", tflop / ttotal / 1.0e9);

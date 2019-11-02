@@ -1,17 +1,17 @@
-SYCL = ${HOME}/opt/ComputeCpp-CE-1.1.5-Ubuntu-16.04-x86_64
-SYCL_OPTIONS = -O2 -std=c++14 -no-serial-memop -Wsycl-pedantic
-CPU_OPTIONS = -sycl -intelspirmetadata -sycl-target spir64
-GPU_OPTIONS = -sycl -sycl-target ptx64
-OPENCL = ${CUDA_ROOT}
+# first source opt/pocl/pocl-setup.sh
+SYCL = ${COMPUTECPP_HOME}
+#SYCL_OPTIONS = -O2 -std=c++14 -no-serial-memop
+SYCL_OPTIONS = -O2 -std=c++14
+CPU_OPTIONS = -sycl -intelspirmetadata -sycl-target spirv64
+GPU_OPTIONS = -mllvm -inline-threshold=1000 -sycl -sycl-target spirv64 -no-serial-memop
+OPENCL = ${POCL_INSTALL}
 
 CC = g++
 CFLAGS = -g -std=c++11 -Wno-ignored-attributes
 
 INCLUDES = -DITERATIONS=1 -DLDIM=32 -I${SYCL}/include -I${OPENCL}/include
 DEPENDS = lattice.hpp
-LIBS = -L${SYCL}/lib -L${OPENCL}/lib64 -lComputeCpp -lOpenCL
-
-all: mult_su3_nn_f32.exe mult_su3_nn_f64.exe
+LIBS = -L${SYCL}/lib -L${OPENCL}/OCL_ICD_Loader/lib64 -lComputeCpp -lOpenCL
 
 # 32-bit float
 mult_su3_nn_f32.exe: mult_su3_nn_bench.cpp $(DEPENDS)
@@ -20,6 +20,8 @@ mult_su3_nn_f32.exe: mult_su3_nn_bench.cpp $(DEPENDS)
 # 64-bit float
 mult_su3_nn_f64.exe: mult_su3_nn_bench.cpp $(DEPENDS)
 	compute++ ${SYCL_OPTIONS} ${GPU_OPTIONS} -sycl-driver ${CFLAGS} ${INCLUDES} make_lattice.cpp mult_su3_nn_bench.cpp -o $@ ${LIBS}
+
+all: mult_su3_nn_f32.exe mult_su3_nn_f64.exe
 
 clean:
 	rm -rf *.exe *.sycl
