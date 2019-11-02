@@ -1,6 +1,6 @@
 #include <CL/cl.hpp>
 #ifndef DEVICE
-#  define DEVICE CL_DEVICE_TYPE_DEFAULT
+#  define DEVICE CL_DEVICE_TYPE_ALL
 #endif
 #include <stdio.h>
 #include <stdlib.h>
@@ -53,9 +53,10 @@ int main(int argc, char *argv[])
   unsigned int sites_per_wi = 1;
   unsigned int wgsize = 0;
   unsigned int verbose=VERBOSE;
+  unsigned int use_device = 0;
 
   // parse command line for parameters
-  while ((opt=getopt(argc, argv, "i:l:s:g:v:")) != -1) {
+  while ((opt=getopt(argc, argv, "i:l:s:g:v:d:")) != -1) {
     switch (opt) {
     case 'i':
       iterations = atoi(optarg);
@@ -72,9 +73,12 @@ int main(int argc, char *argv[])
     case 'v':
       verbose = atoi(optarg);
       break;
+    case 'd':
+      use_device = atoi(optarg);
+      break;
     default: 
       fprintf(stderr, "Usage: %s [-i iterations] [-l lattice dimension] \
-[-s sites per work item] [-g workgroup size] [-v verbosity]\n", argv[0]);
+[-s sites per work item] [-g workgroup size] [-v verbosity] [-d device] \n", argv[0]);
       exit (1);
     }
   }
@@ -117,11 +121,23 @@ int main(int argc, char *argv[])
 #endif
 
   // Setup OpenCL context and devices
-  cl::Context context(DEVICE);
-  cl::CommandQueue queue(context);
   std::vector<cl::Device> devices;
-  context.getInfo(CL_CONTEXT_DEVICES, &devices);
-  cl::Device device=devices[0];
+  std::vector<cl::Platform> platforms;
+  cl::Platform::get(&platforms);
+  for (int i=0; i< platforms.size(); ++i) {
+    std::vector<cl::Device> pdevices;
+    platforms[i].getDevices(DEVICE, &pdevices);
+    devices.insert(devices.end(), pdevices.begin(), pdevices.end());
+  }
+  if (use_device >= devices.size()) {
+    std::cout << "ERROR: Device " << use_device << " not found\n" << std::endl;
+    exit(1);
+  }
+  cl::Device device=devices[use_device];
+
+  cl::Context context(device);
+  cl::CommandQueue queue(context);
+
   // make the kernel
   char build_args[80];
 #ifdef DEBUG
@@ -138,10 +154,14 @@ int main(int argc, char *argv[])
   }
   auto k_mat_nn = cl::make_kernel<int, cl::Buffer, cl::Buffer, cl::Buffer>(program, "k_mat_nn");
   if (verbose >= 2) {
-    std::string s, v;
+    std::string s, v, p = "";
+    cl_platform_id pid;
+    device.getInfo(CL_DEVICE_PLATFORM, &pid);
+    cl::Platform platform(pid);
+    platform.getInfo(CL_PLATFORM_NAME, &p);
     device.getInfo(CL_DEVICE_VENDOR, &v);
     device.getInfo(CL_DEVICE_NAME, &s);
-    std::cout << "Using device: " << v << ": " << s << std::endl;
+    std::cout << "Using device: " << p << ": " << v << ": " << s << std::endl;
   }
 
   // Declare target storage and copy A and B
