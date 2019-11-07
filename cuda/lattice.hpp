@@ -7,11 +7,9 @@
 #define EVEN 0x02
 #define ODD 0x01
 
-#define ALIGN_N 64
-
 // The lattice is an array of sites
 typedef struct {
-	su3_matrix link[4] __attribute__((aligned(ALIGN_N)));  // the fundamental gauge field
+	su3_matrix link[4];  // the fundamental gauge field
 	int x,y,z,t;         // coordinates of this site
 	int index;           // my index in the array
 	char parity;         // is it even or odd?

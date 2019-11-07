@@ -34,35 +34,25 @@
 //  matrix multiply, no adjoints 
 //  C  <-  A*B	
 __global__ void k_mat_nn(
-  const site* __restrict__ a,
+  const site*       __restrict__ a,
   const su3_matrix* __restrict__ b,
-  site* __restrict__ c,
-  int total_sites)
+  site*             __restrict__ c,
+  int               total_sites)
 {
-  int mysite = blockDim.x * blockIdx.x + threadIdx.x;
-#ifdef DEBUG
-  printf("mysite = %d\n", mysite);
-#endif
+  int myThread = blockDim.x * blockIdx.x + threadIdx.x;
+  int mySite = myThread / 4;
 
-  for (int j=0; j<4; ++j) {
+  int j = myThread % 4;
     for (int k=0;k<3;k++) {
       for (int l=0;l<3;l++){
         Complx cc = (0.0,0.0);
         for (int m=0;m<3;m++) {
           Complx bb = b[j].e[m][l]; __syncthreads();
-          cc += a[mysite].link[j].e[k][m] * bb;
-#ifdef DEBUG
-          if (mysite==0 && m==2)
-          printf("a[%d][%d]->e[%d][%d]=%f b[%d][%d]->e[%d][%d]=%f c[%d][%d]->e[%d][%d]=%f\n",
-                  j,mysite,k,m,a[mysite].link[j].e[k][m].real(),
-                  j,mysite,m,l,b[j].e[m][l].real(),
-                  j,mysite,k,l,c[mysite].link[j].e[k][l].real());
-#endif
+          cc += a[mySite].link[j].e[k][m] * bb;
         }
-        c[mysite].link[j].e[k][l] = cc;
+        c[mySite].link[j].e[k][l] = cc;
       }
     }
-  }
 }
 
 int main(int argc, char *argv[])
@@ -94,6 +84,11 @@ int main(int argc, char *argv[])
 [-t threads per block] [-v verbosity]\n", argv[0]);
       exit (1);
     }
+  }
+
+  if ((threadsPerBlock % 4) != 0) {
+    fprintf(stderr, "ERROR: Threads per block must be a multiple of 4\n");
+    exit (1);
   }
 
   // allocate and initialize the working lattices and B link matrix
@@ -132,7 +127,8 @@ int main(int argc, char *argv[])
   cudaMemcpy(d_a, a.data(), size_a, cudaMemcpyHostToDevice);
   cudaMemcpy(d_b, b.data(), size_b, cudaMemcpyHostToDevice);
 
-  blocksPerGrid = (total_sites + threadsPerBlock - 1)/threadsPerBlock;
+  int sitesPerBlock = threadsPerBlock / 4;
+  blocksPerGrid = (total_sites + sitesPerBlock - 1)/sitesPerBlock;
 
   if (verbose >= 1) {
     printf("Number of sites = %d^4\n", ldim);
@@ -147,9 +143,9 @@ int main(int argc, char *argv[])
       k_mat_nn<<<blocksPerGrid, threadsPerBlock>>>(d_a, d_b, d_c, total_sites);
   }
   cudaDeviceSynchronize();
+  double ttotal = (double)(clock()-tstart)/CLOCKS_PER_SEC;
   CUCHECK(cudaGetLastError(), "k_mat_nn kernel Failed");
 
-  double ttotal = (double)(clock()-tstart)/CLOCKS_PER_SEC;
   if (verbose >= 1)
     printf("Total execution time = %.3f secs\n", ttotal);
 
