@@ -29,6 +29,8 @@
         exit(EXIT_FAILURE); \
   }
 
+#define THREADS_PER_SITE 12
+
 //*******************  m_mat_nn.c  (in su3.a) ****************************
 //  void mult_su3_nn( su3_matrix *a,*b,*c )
 //  matrix multiply, no adjoints 
@@ -40,25 +42,27 @@ __global__ void k_mat_nn(
   int               total_sites)
 {
   int myThread = blockDim.x * blockIdx.x + threadIdx.x;
-  int mySite = myThread / 4;
+  int mySite = myThread / THREADS_PER_SITE;
 
-  int j = myThread % 4;
-    for (int k=0;k<3;k++) {
-      for (int l=0;l<3;l++){
-        Complx cc = (0.0,0.0);
-        for (int m=0;m<3;m++) {
-          Complx bb = b[j].e[m][l]; __syncthreads();
-          cc += a[mySite].link[j].e[k][m] * bb;
-        }
-        c[mySite].link[j].e[k][l] = cc;
+  if (mySite < total_sites) {
+    int j = (myThread%THREADS_PER_SITE)/3;
+    int k = myThread%3;
+//printf("myThread = %d, mySite = %d, j = %d, k = %d\n", myThread, mySite, j, k);
+    for (int l=0;l<3;l++){
+      Complx cc = (0.0,0.0);
+      for (int m=0;m<3;m++) {
+        Complx bb = b[j].e[m][l];
+        cc += a[mySite].link[j].e[k][m] * bb;
       }
+      c[mySite].link[j].e[k][l] = cc;
     }
+  }
 }
 
 int main(int argc, char *argv[])
 {
   int opt;
-  int threadsPerBlock=4;
+  int threadsPerBlock=64;
   int blocksPerGrid;
   unsigned int iterations=ITERATIONS;
   unsigned int ldim=LDIM;
@@ -86,8 +90,8 @@ int main(int argc, char *argv[])
     }
   }
 
-  if ((threadsPerBlock % 4) != 0) {
-    fprintf(stderr, "ERROR: Threads per block must be a multiple of 4\n");
+  if (threadsPerBlock < THREADS_PER_SITE) {
+    fprintf(stderr, "ERROR: Threads per block must be >= %d\n", THREADS_PER_SITE);
     exit (1);
   }
 
@@ -127,7 +131,7 @@ int main(int argc, char *argv[])
   cudaMemcpy(d_a, a.data(), size_a, cudaMemcpyHostToDevice);
   cudaMemcpy(d_b, b.data(), size_b, cudaMemcpyHostToDevice);
 
-  int sitesPerBlock = threadsPerBlock / 4;
+  int sitesPerBlock = threadsPerBlock / THREADS_PER_SITE;
   blocksPerGrid = (total_sites + sitesPerBlock - 1)/sitesPerBlock;
 
   if (verbose >= 1) {
