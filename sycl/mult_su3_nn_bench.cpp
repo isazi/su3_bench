@@ -41,6 +41,7 @@ double k_mat_nn(const std::vector<site> &a, const std::vector<su3_matrix> &b, st
   if (verbose >= 2)
     std::cout << "Using device " << queue.get_device().get_info<cl::sycl::info::device::name>() << "\n";
 
+#ifndef HIPSYCL
   // Pre-build the kernel
   auto build_start = Clock::now();
   cl::sycl::program program = cl::sycl::program(queue.get_context());
@@ -48,6 +49,7 @@ double k_mat_nn(const std::vector<site> &a, const std::vector<su3_matrix> &b, st
   double build_time = std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-build_start).count();
   if (verbose >= 2)
     std::cout << "Time to build kernel = " << build_time/1.0e6 << " secs\n";
+#endif
 
 #ifdef USE_ND_ITEM
   if (wgsize == 0) {
@@ -80,13 +82,16 @@ double k_mat_nn(const std::vector<site> &a, const std::vector<su3_matrix> &b, st
       auto d_c = c_buf.get_access<cl::sycl::access::mode::write>(cgh);
 
       // Lambda function defines the kernel scope
-#ifdef USE_ND_ITEM
+#ifdef HIPSYCL
+      cgh.parallel_for<class my_kernel>(
+#else
       cgh.parallel_for<class my_kernel>(program.get_kernel<my_kernel>(), 
+#endif
+#ifdef USE_ND_ITEM
         cl::sycl::nd_range<1> {total_sites, wgsize}, 
 	[=](cl::sycl::nd_item<1> item) { 
         size_t idx = item.get_global_id(0);
 #else
-      cgh.parallel_for<class my_kernel>(program.get_kernel<my_kernel>(), 
         cl::sycl::range<1> {total_sites}, 
 	[=](cl::sycl::id<1> idx) { 
 #endif

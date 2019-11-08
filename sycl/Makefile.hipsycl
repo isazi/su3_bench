@@ -1,19 +1,19 @@
 #
 CC = syclcc-clang 
-CFLAGS = -Wno-c99-designator -g -O2
+CFLAGS = -Wno-c99-designator -g -O2 -DHIPSYCL
 #CFLAGS += --hipsycl-platform=cpu
 
 INCLUDES = -DITERATIONS=1 -DLDIM=32
 
 DEPENDS = lattice.hpp
 
-all: mult_su3_nn_f64.exe mult_su3_nn_f32.exe
+mult_su3_nn_f32.exe: mult_su3_nn_bench.cpp $(DEPENDS)
+	$(CC) $(CFLAGS) $(INCLUDES) -DPRECISION=1 -o $@ make_lattice.cpp mult_su3_nn_bench.cpp $(LDLIBS)
 
 mult_su3_nn_f64.exe: mult_su3_nn_bench.cpp $(DEPENDS)
 	$(CC) $(CFLAGS) $(INCLUDES) -o $@ make_lattice.cpp mult_su3_nn_bench.cpp $(LDLIBS)
 
-mult_su3_nn_f32.exe: mult_su3_nn_bench.cpp $(DEPENDS)
-	$(CC) $(CFLAGS) $(INCLUDES) -DPRECISION=1 -o $@ make_lattice.cpp mult_su3_nn_bench.cpp $(LDLIBS)
+all: mult_su3_nn_f64.exe mult_su3_nn_f32.exe
 
 clean:
 	rm -f *.exe *.o
