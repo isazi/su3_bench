@@ -41,38 +41,43 @@ int main(int argc, char *argv[])
   printf("Executing %d iterations\n", ITERATIONS);
 #endif
 
-  // benchmark loop
   site *p_a, *p_c;
   su3_matrix *p_b;
   size_t len_a, len_b, len_c;
   p_a = a.data(); len_a = a.size();
   p_b = b.data(); len_b = b.size();
   p_c = c.data(); len_c = c.size();
-  double ttotal = 0.0;
+ 
+  // benchmark loop
 #ifdef OMP_TARGET
   #pragma omp target enter data map(to: p_a[0:len_a], p_b[0:len_b], p_c[0:len_c])
   auto tstart = Clock::now();
   for (int iters=0; iters<ITERATIONS; ++iters) {
-    #pragma omp target teams distribute parallel for
+    //#pragma omp target teams distribute
+    #pragma omp target teams distribute thread_limit(32)
+    //#pragma omp target teams distribute num_teams(total_sites) thread_limit(32)
+    for(int i=0;i<total_sites;++i) {
+      #pragma omp parallel for collapse(3)
 #else
   auto tstart = Clock::now();
   for (int iters=0; iters<ITERATIONS; ++iters) {
     #pragma omp parallel for
-#endif
     for(int i=0;i<total_sites;++i) {
+#endif
       for (int j=0; j<4; ++j) {
         for(int k=0;k<3;k++) {
           for(int l=0;l<3;l++){
-            p_c[i].link[j].e[k][l]=Complx(0.0,0.0);
+            Complx cc;
             for(int m=0;m<3;m++) {
-              p_c[i].link[j].e[k][l] += p_a[i].link[j].e[k][m] * p_b[j].e[m][l];
+              cc += p_a[i].link[j].e[k][m] * p_b[j].e[m][l];
             }
+            p_c[i].link[j].e[k][l] = cc;
           }
         }
       }
     }
   }
-  ttotal = std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tstart).count() / 1.0e6;
+  double ttotal = std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tstart).count() / 1.0e6;
 #if defined VERBOSE && VERBOSE >= 1
   printf("Total execution time = %.3f secs\n", ttotal);
 #endif
