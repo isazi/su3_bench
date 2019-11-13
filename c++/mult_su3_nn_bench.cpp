@@ -49,15 +49,36 @@ int main(int argc, char *argv[])
   p_c = c.data(); len_c = c.size();
  
   // benchmark loop
+#define WORKAROUND
 #ifdef OMP_TARGET
   #pragma omp target enter data map(to: p_a[0:len_a], p_b[0:len_b], p_c[0:len_c])
   auto tstart = Clock::now();
   for (int iters=0; iters<ITERATIONS; ++iters) {
+#ifndef WORKAROUND
     //#pragma omp target teams distribute
     #pragma omp target teams distribute thread_limit(32)
-    //#pragma omp target teams distribute num_teams(total_sites) thread_limit(32)
     for(int i=0;i<total_sites;++i) {
+      int total_teams = omp_get_num_teams();
+      int team_id = omp_get_team_num();
+      int sites_per_team = (total_sites + total_teams - 1) / total_teams;
+if (iters == 0 && i == 0 && team_id == 0) printf("total teams = %d, sites/team = %d\n", total_teams, sites_per_team);
       #pragma omp parallel for collapse(3)
+#else
+    //#pragma omp target teams
+    #pragma omp target teams num_teams(4096)
+    {
+      int total_teams = omp_get_num_teams();
+      int team_id = omp_get_team_num();
+      int sites_per_team = (total_sites + total_teams - 1) / total_teams;
+      int istart = team_id * sites_per_team;
+      if (istart > total_sites) istart = total_sites;
+      int iend = istart + sites_per_team;
+      if (iend > total_sites) iend = total_sites;
+
+      #pragma omp parallel
+      for (int i = istart; i < iend; ++i)
+      #pragma omp for collapse(3)
+#endif
 #else
   auto tstart = Clock::now();
   for (int iters=0; iters<ITERATIONS; ++iters) {
