@@ -27,7 +27,7 @@ typedef std::chrono::system_clock Clock;
 #  define VERBOSE 1    // valid values: 0, 1 or 2
 #endif
 
-#define USE_ND_ITEM
+#undef USE_ND_ITEM
 
 // Global variables
 class my_kernel;
@@ -79,7 +79,7 @@ double k_mat_nn(const std::vector<site> &a, const std::vector<su3_matrix> &b, st
       // request access to the host buffers
       auto d_a = a_buf.get_access<cl::sycl::access::mode::read>(cgh);
       auto d_b = b_buf.get_access<cl::sycl::access::mode::read>(cgh);
-      auto d_c = c_buf.get_access<cl::sycl::access::mode::write>(cgh);
+      auto d_c = c_buf.get_access<cl::sycl::access::mode::discard_write>(cgh);
 
       // Lambda function defines the kernel scope
 #ifdef HIPSYCL
@@ -98,16 +98,11 @@ double k_mat_nn(const std::vector<site> &a, const std::vector<su3_matrix> &b, st
         for (int j=0; j<4; ++j) {
           for (int k=0;k<3;k++) {
             for (int l=0;l<3;l++){
-#if 1
               d_c[idx].link[j].e[k][l].real=0.0;
               d_c[idx].link[j].e[k][l].imag=0.0;
               for (int m=0;m<3;m++) {
                 CMULSUM(d_a[idx].link[j].e[k][m], d_b[j].e[m][l], d_c[idx].link[j].e[k][l]);
-		//d_c[idx].link[j].e[k][l].real += d_a[idx].link[j].e[k][m].real * d_b[j].e[m][l].real;
               }
-#else
-	      ;
-#endif
             }
           }
         }
