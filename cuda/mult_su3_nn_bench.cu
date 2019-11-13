@@ -29,7 +29,7 @@
         exit(EXIT_FAILURE); \
   }
 
-#define THREADS_PER_SITE 12
+#define THREADS_PER_SITE 36
 
 //*******************  m_mat_nn.c  (in su3.a) ****************************
 //  void mult_su3_nn( su3_matrix *a,*b,*c )
@@ -42,20 +42,16 @@ __global__ void k_mat_nn(
   int               total_sites)
 {
   int myThread = blockDim.x * blockIdx.x + threadIdx.x;
-  int mySite = myThread / THREADS_PER_SITE;
+  int mySite = myThread/36;
 
   if (mySite < total_sites) {
-    int j = (myThread%THREADS_PER_SITE)/3;
-    int k = myThread%3;
-//printf("myThread = %d, mySite = %d, j = %d, k = %d\n", myThread, mySite, j, k);
-    for (int l=0;l<3;l++){
-      Complx cc = (0.0,0.0);
-      for (int m=0;m<3;m++) {
-        Complx bb = b[j].e[m][l];
-        cc += a[mySite].link[j].e[k][m] * bb;
-      }
-      c[mySite].link[j].e[k][l] = cc;
-    }
+    int j = (myThread%36)/9;
+    int k = (myThread%9)/3;
+    int l = myThread%3;
+    Complx cc;
+    for (int m=0;m<3;m++)
+      cc += a[mySite].link[j].e[k][m] * b[j].e[m][l];
+    c[mySite].link[j].e[k][l] = cc;
   }
 }
 
