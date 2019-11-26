@@ -2,16 +2,14 @@
 #define _LATTICE_HPP
 // Adapted from lattice.h in MILC version 7
 
-#ifdef __OPENCL_VERSION__
+#if defined(USE_OPENCL)
 #  include "su3.h"
 #else
 #  include "su3.hpp"
 #endif
 
 #define EVEN 0x02
-#define ODD 0x01
-
-#define ALIGN_N 8
+#define ODD  0x01
 
 // The lattice is an array of sites
 typedef struct {
@@ -25,9 +23,5 @@ typedef struct {
         int pad[10];         // pad out to 64 byte alignment
 #endif
 } site __attribute__ ((aligned));
-
-// globals related to the lattice
-extern void init_link(su3_matrix *, Complx);
-extern void make_lattice(site *, int);
 
 #endif // _LATTICE_HPP

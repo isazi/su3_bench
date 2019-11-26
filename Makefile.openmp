@@ -1,0 +1,20 @@
+#
+CC = clang++
+CFLAGS += -ffast-math -fopenmp -fopenmp-targets=nvptx64-nvidia-cuda
+CFLAGS += -std=c++11 -g -O3 -fopenmp -Wno-ignored-attributes -Wno-deprecated-declarations
+
+INCLUDES = -DUSE_OPENMP -DITERATIONS=100 -DLDIM=32
+LDLIBS =
+
+DEPENDS = su3.hpp lattice.hpp mat_nn_openmp.hpp
+
+bench_f32_openmp.exe: su3_nn_bench.cpp $(DEPENDS)
+	$(CC) -DPRECISION=1 $(CFLAGS) $(INCLUDES) -o $@ su3_nn_bench.cpp $(LDLIBS)
+
+bench_f64_openmp.exe: su3_nn_bench.cpp $(DEPENDS)
+	$(CC) $(CFLAGS) $(INCLUDES) -o $@ su3_nn_bench.cpp $(LDLIBS)
+
+all: bench_f64_openmp.exe bench_f32_openmp.exe
+
+clean:
+	rm -f *openmp.exe
