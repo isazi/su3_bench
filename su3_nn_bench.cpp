@@ -33,6 +33,8 @@ unsigned int verbose=1;
   #include "mat_nn_cuda.hpp"
 #elif  USE_OPENMP
   #include "mat_nn_openmp.hpp"
+#elif  USE_OPENACC
+  #include "mat_nn_openacc.hpp"
 #elif  USE_OPENCL
   #define MILC_COMPLEX
   #include "mat_nn_opencl.hpp"
@@ -115,7 +117,6 @@ int main(int argc, char *argv[])
 
   // allocate and initialize the working lattices and B su3 matrices
   size_t total_sites = ldim*ldim*ldim*ldim;
-  Complx val;
 #ifndef USE_CUDA
   std::vector<site> a(total_sites);
   std::vector<su3_matrix> b(4);

@@ -1,0 +1,20 @@
+#
+CC = pgc++
+CFLAGS = -acc -ta=tesla:fastmath,cc70 # -Minfo=accel
+CFLAGS += -std=c++11 -g -O3
+
+INCLUDES = -DUSE_OPENACC -DITERATIONS=100 -DLDIM=32
+LDLIBS =
+
+DEPENDS = su3.hpp lattice.hpp mat_nn_openacc.hpp
+
+bench_f32_openacc.exe: su3_nn_bench.cpp $(DEPENDS)
+	$(CC) -DPRECISION=1 $(CFLAGS) $(INCLUDES) -o $@ su3_nn_bench.cpp $(LDLIBS)
+
+bench_f64_openacc.exe: su3_nn_bench.cpp $(DEPENDS)
+	$(CC) $(CFLAGS) $(INCLUDES) -o $@ su3_nn_bench.cpp $(LDLIBS)
+
+all: bench_f64_openacc.exe bench_f32_openacc.exe
+
+clean:
+	rm -f *openacc.exe
