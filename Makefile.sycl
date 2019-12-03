@@ -12,7 +12,7 @@ SYCL_OPTIONS += ${GPU_OPTIONS}
 CC = g++
 CFLAGS = -g -std=c++11 -Wno-ignored-attributes
 
-INCLUDES = -DITERATIONS=1 -DLDIM=32 -DUSE_SYCL -I${SYCL}/include -I${OPENCL}/include
+INCLUDES = -DITERATIONS=1 -DLDIM=32 -DUSE_SYCL -I${SYCL}/include -I${OPENCL}/include #-DLAT_CHECK
 DEPENDS = su3.h lattice.hpp mat_nn_sycl.hpp
 LIBS = -L${SYCL}/lib -L${OPENCL}/lib64 -lComputeCpp -lOpenCL
 

@@ -27,11 +27,6 @@ static inline std::string loadProgram(std::string input)
 double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<site> &c, 
               size_t total_sites, size_t iterations, size_t wgsize, int use_device)
 { 
-
-  if (wgsize < THREADS_PER_SITE)
-    wgsize = THREADS_PER_SITE;
-
-
   // Setup OpenCL context and devices
   std::vector<cl::Device> devices;
   std::vector<cl::Platform> platforms;
@@ -59,7 +54,11 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
 
   // make the kernel
   char build_args[80];
+#ifndef LAT_CHECK
   sprintf(build_args, "-I. -DPRECISION=%d -DUSE_OPENCL", PRECISION);
+#else
+  sprintf(build_args, "-I. -DPRECISION=%d -DUSE_OPENCL -DLAT_CHECK", PRECISION);
+#endif
   if (verbose >= 2)
     std::cout << "Building Kernel with: " << build_args << std::endl;
   cl::Program program(context, loadProgram("k_mat_nn.cl"), false);
@@ -79,11 +78,16 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
   auto d_b = cl::Buffer(context, begin(b), end(b), true);
   auto d_c = cl::Buffer(context, CL_MEM_READ_WRITE, sizeof(site)*c.size());
 
-  if (verbose >= 1)
+  if (wgsize < THREADS_PER_SITE)
+    wgsize = THREADS_PER_SITE;
+  size_t total_wi = total_sites * wgsize;
+
+  if (verbose >= 1) {
+    std::cout << "Setting number of work items " << total_wi << std::endl;
     std::cout << "Setting workgroup size to " << wgsize << std::endl;
+  }
 
   // benchmark loop
-  size_t total_wi = total_sites * wgsize;
   auto tstart = Clock::now();
   for (int iters=0; iters<iterations; ++iters) {
     k_mat_nn(cl::EnqueueArgs(queue, cl::NDRange(total_wi), cl::NDRange(wgsize)), d_a, d_b, d_c, total_sites);

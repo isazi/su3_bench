@@ -27,9 +27,13 @@ __global__ void k_mat_nn(
     int k = (myThread%9)/3;
     int l = myThread%3;
     Complx cc;
+#ifndef LAT_CHECK
     for (int m=0;m<3;m++)
       cc += a[mySite].link[j].e[k][m] * b[j].e[m][l];
     c[mySite].link[j].e[k][l] = cc;
+#else
+    ;
+#endif
   }
 }
 
@@ -95,7 +99,6 @@ double su3_mat_nn(thrust::host_vector<site> &a, thrust::host_vector<su3_matrix> 
   cudaFree(d_b);
   cudaFree(d_c);
 
-printf("Total execution time = %f secs\n", ttotal);
   return (ttotal /= 1.0e6);
 }
 

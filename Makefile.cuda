@@ -2,7 +2,7 @@
 CC = nvcc -ccbin g++ -m64 --x cu --std c++11
 CFLAGS = -gencode arch=compute_70,code=sm_70
 
-INCLUDES = -DUSE_CUDA -DITERATIONS=100 -DLDIM=32
+INCLUDES = -DUSE_CUDA -DITERATIONS=100 -DLDIM=32 #-DLAT_CHECK
 LDLIBS =
 
 DEPENDS = su3.hpp lattice.hpp mat_nn_cuda.hpp

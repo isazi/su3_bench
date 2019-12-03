@@ -1,12 +1,24 @@
 // OpenMP target offload implementation
 #include <omp.h>
+#include <unistd.h>
 #define USE_WORKAROUND
 #define THREADS_PER_SITE 36
-#define NUM_TEAMS 8000
+#define NUM_TEAMS 1600
 
 double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<site> &c, 
               size_t total_sites, size_t iterations, size_t threads_per_team, int use_device)
 {
+  size_t num_teams = NUM_TEAMS;
+  int opt;
+  optind = 1;
+  while ((opt=getopt(g_argc, g_argv, ":n:")) != -1) {
+    switch (opt) {
+    case 'n':
+      num_teams = atoi(optarg);
+      break;
+    }
+  }
+
   site *d_a, *d_c;
   su3_matrix *d_b;
   size_t len_a, len_b, len_c;
@@ -14,10 +26,12 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
   d_b = b.data(); len_b = b.size();
   d_c = c.data(); len_c = c.size();
  
-  if (threads_per_team < THREADS_PER_SITE) {
+  if (threads_per_team < THREADS_PER_SITE)
     threads_per_team = THREADS_PER_SITE;
-    if (verbose >= 1)
-      std::cout << "Setting threads per team to " << threads_per_team << std::endl;
+
+  if (verbose >= 1) {
+    std::cout << "Setting number of teams to " << num_teams << std::endl;
+    std::cout << "Setting threads per team to " << threads_per_team << std::endl;
   }
 
   // Move A, B and C vectors to the device
@@ -26,7 +40,7 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
   // benchmark loop
   auto tstart = Clock::now();
 #ifndef USE_WORKAROUND
-  for (int iters=0; iters<ITERATIONS; ++iters) {
+  for (int iters=0; iters<iterations; ++iters) {
     #pragma omp target teams distribute
     for(int i=0;i<total_sites;++i) {
       #pragma omp parallel for collapse(3)
@@ -44,8 +58,8 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
     }
   }
 #else
-  for (int iters=0; iters<ITERATIONS; ++iters) {
-    #pragma omp target teams num_teams(NUM_TEAMS) thread_limit(threads_per_team)
+  for (int iters=0; iters<iterations; ++iters) {
+    #pragma omp target teams num_teams(num_teams) thread_limit(threads_per_team)
     {
       #pragma omp parallel
       {
@@ -56,17 +70,21 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
         if (istart > total_sites) istart = total_sites;
         int iend = istart + sites_per_team;
         if (iend > total_sites) iend = total_sites;
-  
+
         for (int i = istart; i < iend; ++i) {
           #pragma omp for collapse(3)
           for (int j=0; j<4; ++j) {
             for(int k=0;k<3;k++) {
               for(int l=0;l<3;l++){
                 Complx cc;
+#ifndef LAT_CHECK
                 for(int m=0;m<3;m++) {
                   cc += d_a[i].link[j].e[k][m] * d_b[j].e[m][l];
                 }
                 d_c[i].link[j].e[k][l] = cc;
+#else
+    ;
+#endif
               }
             }
           }

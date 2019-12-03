@@ -17,11 +17,15 @@ __kernel void k_mat_nn(
     int j = (myThread%36)/9;
     int k = (myThread%9)/3;
     int l = myThread%3;
-    c[mySite].link[j].e[k][l].real=0.0;
-    c[mySite].link[j].e[k][l].imag=0.0;
-    for (int m=0;m<3;m++) {
-            CMULSUM(a[mySite].link[j].e[k][m], b[j].e[m][l], c[mySite].link[j].e[k][l]);
-    }
+    Complx cc = {0.0, 0.0};
+#ifndef LAT_CHECK
+    for (int m=0;m<3;m++)
+      CMULSUM(a[mySite].link[j].e[k][m], b[j].e[m][l], cc);
+    c[mySite].link[j].e[k][l].real = cc.real;
+    c[mySite].link[j].e[k][l].imag = cc.imag;
+#else
+    ;
+#endif
   }
 }
 

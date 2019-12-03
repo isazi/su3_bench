@@ -20,6 +20,9 @@ typedef std::chrono::system_clock Clock;
 
 // Global variables
 unsigned int verbose=1;
+// global argc and argv for parsing model specific parameters 
+int  g_argc;
+char **g_argv;
 
 // OpenCL 1.2 doesn't support complex data types
 #if defined(USE_OPENCL)
@@ -77,7 +80,7 @@ void make_lattice(site *s, size_t n, Complx val) {
 }
 
 // Main
-int main(int argc, char *argv[])
+int main(int argc, char **argv)
 {
   int opt;
   size_t iterations = ITERATIONS;
@@ -88,9 +91,10 @@ int main(int argc, char *argv[])
 #else
   int device = 0;
 #endif
-
+  g_argc = argc;
+  g_argv = argv;
   // parse command line for parameters
-  while ((opt=getopt(argc, argv, "hi:l:t:v:d:")) != -1) {
+  while ((opt=getopt(argc, argv, ":hi:l:t:v:d:")) != -1) {
     switch (opt) {
     case 'i':
       iterations = atoi(optarg);
@@ -108,7 +112,6 @@ int main(int argc, char *argv[])
       verbose = atoi(optarg);
       break;
     case 'h':
-    default: 
       fprintf(stderr, "Usage: %s [-i iterations] [-l lattice dimension] \
 [-t threads per workgroup] [-v verbosity level [0,1,2,3]]\n", argv[0]);
       exit (1);

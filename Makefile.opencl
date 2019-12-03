@@ -4,7 +4,7 @@ CC = g++
 CFLAGS = -std=c++11 -g -O3 -fopenmp -Wno-ignored-attributes -Wno-deprecated-declarations
 CFLAGS += -I$(CUDA_ROOT)/include
 
-INCLUDES = -DUSE_OPENCL -DITERATIONS=100 -DLDIM=32
+INCLUDES = -DUSE_OPENCL -DITERATIONS=100 -DLDIM=32 #-DLAT_CHECK
 LDLIBS = -lm 
 LDLIBS += -L$(CUDA_ROOT)/lib64 -lOpenCL
 

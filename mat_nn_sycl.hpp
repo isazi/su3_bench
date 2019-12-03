@@ -83,9 +83,13 @@ double su3_mat_nn(const std::vector<site> &a, const std::vector<su3_matrix> &b, 
           int k = (myThread%9)/3;
           int l = myThread%3;
           Complx cc;
+#ifndef LAT_CHECK
           for (int m=0;m<3;m++)
             cc += d_a[mySite].link[j].e[k][m] * d_b[j].e[m][l];
           d_c[mySite].link[j].e[k][l] = cc;
+#else
+    ;
+#endif
         }
       }); // end of the kernel lambda function
     });   // end of command group

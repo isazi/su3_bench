@@ -3,7 +3,7 @@ CC = pgc++
 CFLAGS = -acc -ta=tesla:fastmath,cc70 # -Minfo=accel
 CFLAGS += -std=c++11 -g -O3
 
-INCLUDES = -DUSE_OPENACC -DITERATIONS=100 -DLDIM=32
+INCLUDES = -DUSE_OPENACC -DITERATIONS=100 -DLDIM=32 #-DLAT_CHECK
 LDLIBS =
 
 DEPENDS = su3.hpp lattice.hpp mat_nn_openacc.hpp
