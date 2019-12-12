@@ -1,5 +1,4 @@
 #
-#CC = clang++
 CC = g++
 CFLAGS = -std=c++11 -g -O3 -fopenmp -Wno-ignored-attributes -Wno-deprecated-declarations
 CFLAGS += -I$(CUDA_ROOT)/include
