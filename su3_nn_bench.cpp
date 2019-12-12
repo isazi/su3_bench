@@ -144,11 +144,11 @@ int main(int argc, char **argv)
   // benchmark call
   double ttotal = su3_mat_nn(a, b, c, total_sites, iterations, threads_per_group, device);
   if (verbose >= 1)
-    printf("Total execution time = %.3f secs\n", ttotal);
+    printf("Total execution time = %f secs\n", ttotal);
 
   // calculate flops/s, etc.
-  // each iter of above kernel is (3*3)*(12 mult + 12 add) = 108 mult + 108 add = 216 ops
-  double tflop = (double)iterations * total_sites * 4.0 * 216.0;
+  // each matrix multiply is (3*3)*4*(12 mult + 12 add) = 4*(108 mult + 108 add) = 4*216 ops
+  double tflop = (double)iterations * total_sites * 864.0;
   printf("Total GFLOP/s = %.3f\n", tflop / ttotal / 1.0e9);
 
   // calculate a checksum
