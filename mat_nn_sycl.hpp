@@ -40,16 +40,17 @@ double su3_mat_nn(const std::vector<site> &a, const std::vector<su3_matrix> &b, 
     std::cout << "Time to build kernel = " << build_time/1.0e6 << " secs\n";
 #endif
 
-  if (wgsize == 0) {
+  if (wgsize < THREADS_PER_SITE)
     wgsize = THREADS_PER_SITE;
-    if (verbose >= 1)
-      std::cout << "Setting workgroup size to " << wgsize << "\n";
-    if (verbose >= 3) {
-      std::cout << "max compute units = " 
-	        << queue.get_device().get_info<cl::sycl::info::device::max_compute_units>() << "\n";
-      std::cout << "max workgroup size = " 
-	        << queue.get_device().get_info<cl::sycl::info::device::max_work_group_size>() << "\n";
-    }
+
+  if (verbose >= 1)
+    std::cout << "Setting workgroup size to " << wgsize << "\n";
+
+  if (verbose >= 3) {
+    std::cout << "max compute units = " 
+       << queue.get_device().get_info<cl::sycl::info::device::max_compute_units>() << "\n";
+    std::cout << "max workgroup size = " 
+       << queue.get_device().get_info<cl::sycl::info::device::max_work_group_size>() << "\n";
   }
 
   // wrap arrays in SYCL buffers, suppling global memory pointer implicitly copies the data to the device
