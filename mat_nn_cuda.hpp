@@ -51,14 +51,28 @@ double su3_mat_nn(thrust::host_vector<site> &a, thrust::host_vector<su3_matrix> 
   // Device initialization
   int deviceCount;
   cudaGetDeviceCount(&deviceCount);
-  if (use_device >= deviceCount) {
+  if (deviceCount == 0) {
+    printf("ERROR: No devices found\n");
+    exit(1);
+  }
+
+  struct cudaDeviceProp device_prop;
+  for (int i = 0; i < deviceCount; ++i) {
+    cudaGetDeviceProperties(&device_prop, i);
+    if (verbose >= 3) {
+      printf("Located device %d: %s\n", i, device_prop.name);
+    }
+  }
+  if (use_device == -1)
+    use_device = 0;
+  else if (use_device >= deviceCount) {
     printf("ERROR: Device %d not found\n", use_device);
     exit(1);
   }
+  cudaSetDevice(use_device);
   if (verbose >= 2) {
-    struct cudaDeviceProp device_prop;
     cudaGetDeviceProperties(&device_prop, use_device);
-    printf("Using device: %s\n", device_prop.name);
+    printf("Using device %d: %s\n", use_device, device_prop.name);
   }
 
   // Declare target storage and copy A and B
