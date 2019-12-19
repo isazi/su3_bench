@@ -57,9 +57,9 @@ double su3_mat_nn(thrust::host_vector<site> &a, thrust::host_vector<su3_matrix> 
   }
 
   struct cudaDeviceProp device_prop;
-  for (int i = 0; i < deviceCount; ++i) {
-    cudaGetDeviceProperties(&device_prop, i);
-    if (verbose >= 3) {
+  if (verbose >= 3) {
+    for (int i = 0; i < deviceCount; ++i) {
+      cudaGetDeviceProperties(&device_prop, i);
       printf("Located device %d: %s\n", i, device_prop.name);
     }
   }
