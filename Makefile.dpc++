@@ -1,9 +1,9 @@
 # depends on bashrc.llvm-intel
 CC = clang++
 CFLAGS = -O2 -std=c++14
-CFLAGS += -fsycl -DTARGET_CPU
+CFLAGS += -fsycl
 
-INCLUDES = -DITERATIONS=1 -DLDIM=32 -DUSE_SYCL -DHIPSYCL
+INCLUDES = -DITERATIONS=1 -DLDIM=32 -DUSE_SYCL
 #INCLUDES += -DLAT_CHECK
 
 DEPENDS = su3.h lattice.hpp mat_nn_sycl.hpp
@@ -16,7 +16,7 @@ bench_f32_dpc++.exe: su3_nn_bench.cpp $(DEPENDS)
 bench_f64_dpc++.exe: su3_nn_bench.cpp $(DEPENDS)
 	${CC} ${CFLAGS} ${INCLUDES} su3_nn_bench.cpp -o $@ ${LIBS}
 
-all: bench_f32_hipsycl.exe bench_f64_hipsycl.exe
+all: bench_f32_dpc++.exe bench_f64_dpc++.exe
 
 clean:
-	rm -rf *sycl.exe
+	rm -rf *.exe
