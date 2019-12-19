@@ -86,11 +86,8 @@ int main(int argc, char **argv)
   size_t iterations = ITERATIONS;
   size_t ldim = LDIM;
   size_t threads_per_group = 0;
-#ifdef USE_SYCL
-  int device = 1;   // ComputeCpp assigns 0 to Host Device
-#else
-  int device = 0;
-#endif
+  int device = -1;   // Use a default selector
+
   g_argc = argc;
   g_argv = argv;
   // parse command line for parameters

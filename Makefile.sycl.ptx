@@ -1,0 +1,25 @@
+# depends on sourcing ~/.bashrc.computecpp
+SYCL = ${SYCL_HOME}
+SYCL_OPTIONS = -O2 -std=c++14 -ffast-math -no-serial-memop -Wsycl-pedantic -sycl-driver
+GPU_OPTIONS = -sycl-target ptx64
+OPENCL = ${CUDA_ROOT}
+
+# Use one or the other
+SYCL_OPTIONS += ${GPU_OPTIONS}
+
+INCLUDES = -DITERATIONS=1 -DLDIM=32 -DUSE_SYCL -I${SYCL}/include -I${OPENCL}/include #-DLAT_CHECK
+DEPENDS = su3.h lattice.hpp mat_nn_sycl.hpp
+LIBS = -L${SYCL}/lib -L${OPENCL}/lib64 -lComputeCpp -lOpenCL
+
+# 32-bit float
+bench_f32_sycl.exe: su3_nn_bench.cpp $(DEPENDS)
+	compute++ ${SYCL_OPTIONS} ${CFLAGS} ${INCLUDES} -DPRECISION=1 su3_nn_bench.cpp -o $@ ${LIBS}
+
+# 64-bit float
+bench_f64_sycl.exe: su3_nn_bench.cpp $(DEPENDS)
+	compute++ ${SYCL_OPTIONS} ${CFLAGS} ${INCLUDES} su3_nn_bench.cpp -o $@ ${LIBS}
+
+all: bench_f32_sycl.exe bench_f64_sycl.exe
+
+clean:
+	rm -rf *sycl.exe

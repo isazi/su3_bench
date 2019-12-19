@@ -22,11 +22,19 @@ double su3_mat_nn(const std::vector<site> &a, const std::vector<su3_matrix> &b, 
   }
 
   // Create a SYCL queue
-  if (target >= devices.size()) {
-    std::cout << "Invalid device specified " << target << std::endl;
+  cl::sycl::device target_device;
+  if (target < 0) {
+    cl::sycl::default_selector selector;
+    target_device = selector.select_device();
+  } 
+  else if (target < devices.size()) {
+    target_device = devices[target];
+  }
+  else {
+    std::cout << "Invalid device specified: " << target << std::endl;
     exit(1);
   }
-  cl::sycl::queue queue(devices[target]);
+  cl::sycl::queue queue(target_device);
   if (verbose >= 2)
     std::cout << "Using device: " << queue.get_device().get_info<cl::sycl::info::device::name>() << "\n";
 

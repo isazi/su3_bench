@@ -33,22 +33,41 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
   cl::Platform::get(&platforms);
   for (int i=0, d=0; i< platforms.size(); ++i) {
     std::vector<cl::Device> pdevices;
-    platforms[i].getDevices(DEVICE, &pdevices);
+    platforms[i].getDevices(CL_DEVICE_TYPE_ALL, &pdevices);
     for (int j = 0; j < pdevices.size(); ++j, ++d) {
-      devices.insert(devices.end(), pdevices[j]);
       if (verbose >= 3) {
         std::string s;
         pdevices[j].getInfo(CL_DEVICE_NAME, &s);
-        std::cout << "Appending device " << d << ": " << s << std::endl;
+        std::cout << "Located device " << d << ": " << s << std::endl;
+      }
+      devices.insert(devices.end(), pdevices[j]);
+    }
+  }
+
+  if (devices.size() == 0) {
+    std::cout << "ERROR: No devices found\n" << std::endl;
+    exit(1);
+  }
+
+  // If a device id isn't specified, if available specify a GPU as a default
+  if (use_device < 0) {
+    cl_device_type device_type;
+    use_device = 0;
+    for (int j = 0; j < devices.size(); ++j) {
+      devices[j].getInfo(CL_DEVICE_TYPE, &device_type);
+printf("device_type[%d] = %lx\n", j, device_type);
+      if (device_type == CL_DEVICE_TYPE_GPU) {
+        use_device = j;
+        break;
       }
     }
   }
-  if (use_device >= devices.size()) {
+  else if (use_device >= devices.size()) {
     std::cout << "ERROR: Device " << use_device << " not found\n" << std::endl;
     exit(1);
   }
-  cl::Device device=devices[use_device];
 
+  cl::Device device=devices[use_device];
   cl::Context context(device);
   cl::CommandQueue queue(context);
 
