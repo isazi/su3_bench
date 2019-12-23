@@ -12,7 +12,7 @@ typedef std::chrono::system_clock Clock;
 #  define ITERATIONS 100
 #endif
 #ifndef LDIM
-#  define LDIM 7       // Lattice size = LDIM^4
+#  define LDIM 32       // Lattice size = LDIM^4
 #endif
 #ifndef PRECISION
 #  define PRECISION 2  // 1->single, 2->double

@@ -1,18 +1,19 @@
-#
-CC = pgc++
-CFLAGS = -acc -ta=tesla:fastmath,cc70 # -Minfo=accel
-CFLAGS += -std=c++11 -g -O3
+# depends on bashrc.pgi
+LAT_CHECK = false
 
-INCLUDES = -DUSE_OPENACC -DITERATIONS=100 -DLDIM=32 #-DLAT_CHECK
-LDLIBS =
-
+CC = pgc++ -acc -ta=tesla:fastmath,cc70 # -Minfo=accel
+CFLAGS = -std=c++14 -O3
+INCLUDES = -DUSE_OPENACC
+ifeq ($(LAT_CHECK),true)
+ INCLUDES += -DLAT_CHECK
+endif
 DEPENDS = su3.hpp lattice.hpp mat_nn_openacc.hpp
 
 bench_f32_openacc.exe: su3_nn_bench.cpp $(DEPENDS)
-	$(CC) -DPRECISION=1 $(CFLAGS) $(INCLUDES) -o $@ su3_nn_bench.cpp $(LDLIBS)
+	$(CC) -DPRECISION=1 $(CFLAGS) $(INCLUDES) -o $@ su3_nn_bench.cpp $(LIBS)
 
 bench_f64_openacc.exe: su3_nn_bench.cpp $(DEPENDS)
-	$(CC) $(CFLAGS) $(INCLUDES) -o $@ su3_nn_bench.cpp $(LDLIBS)
+	$(CC) $(CFLAGS) $(INCLUDES) -o $@ su3_nn_bench.cpp $(LIBS)
 
 all: bench_f64_openacc.exe bench_f32_openacc.exe
 

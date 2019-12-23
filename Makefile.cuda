@@ -1,17 +1,19 @@
-#
-CC = nvcc -ccbin g++ -m64 --x cu --std c++11
-CFLAGS = -gencode arch=compute_70,code=sm_70
+# depends on a Cuda module being loaded
+LAT_CHECK = false
 
-INCLUDES = -DUSE_CUDA -DITERATIONS=100 -DLDIM=32 #-DLAT_CHECK
-LDLIBS =
-
+CC = nvcc -ccbin g++ -m64 --x cu -gencode arch=compute_70,code=sm_70
+CFLAGS = --std c++14
+INCLUDES = -DUSE_CUDA
+ifeq ($(LAT_CHECK),true)
+ INCLUDES += -DLAT_CHECK
+endif
 DEPENDS = su3.hpp lattice.hpp mat_nn_cuda.hpp
 
 bench_f32_cuda.exe: su3_nn_bench.cpp $(DEPENDS)
-	$(CC) -DPRECISION=1 $(CFLAGS) $(INCLUDES) -o $@ su3_nn_bench.cpp $(LDLIBS)
+	$(CC) $(CFLAGS) $(INCLUDES) -DPRECISION=1 -o $@ su3_nn_bench.cpp $(LIBS)
 
 bench_f64_cuda.exe: su3_nn_bench.cpp $(DEPENDS)
-	$(CC) $(CFLAGS) $(INCLUDES) -o $@ su3_nn_bench.cpp $(LDLIBS)
+	$(CC) $(CFLAGS) $(INCLUDES) -o $@ su3_nn_bench.cpp $(LIBS)
 
 all: bench_f64_cuda.exe bench_f32_cuda.exe
 

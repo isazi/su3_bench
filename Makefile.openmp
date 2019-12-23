@@ -1,18 +1,19 @@
-#
-CC = clang++
-CFLAGS += -ffast-math -fopenmp -fopenmp-targets=nvptx64-nvidia-cuda
-CFLAGS += -std=c++11 -g -O3 -fopenmp -Wno-ignored-attributes -Wno-deprecated-declarations
+# depends on bashrc.llvm-10
+LAT_CHECK = false
 
-INCLUDES = -DUSE_OPENMP -DITERATIONS=100 -DLDIM=32 #-DLAT_CHECK
-LDLIBS =
-
+CC = clang++ -fopenmp -fopenmp-targets=nvptx64-nvidia-cuda -ffast-math
+CFLAGS += -std=c++14 -O3 -Wno-ignored-attributes -Wno-deprecated-declarations
+INCLUDES = -DUSE_OPENMP
+ifeq ($(LAT_CHECK),true)
+ INCLUDES += -DLAT_CHECK
+endif
 DEPENDS = su3.hpp lattice.hpp mat_nn_openmp.hpp
 
 bench_f32_openmp.exe: su3_nn_bench.cpp $(DEPENDS)
-	$(CC) -DPRECISION=1 $(CFLAGS) $(INCLUDES) -o $@ su3_nn_bench.cpp $(LDLIBS)
+	$(CC) -DPRECISION=1 $(CFLAGS) $(INCLUDES) -o $@ su3_nn_bench.cpp $(LIBS)
 
 bench_f64_openmp.exe: su3_nn_bench.cpp $(DEPENDS)
-	$(CC) $(CFLAGS) $(INCLUDES) -o $@ su3_nn_bench.cpp $(LDLIBS)
+	$(CC) $(CFLAGS) $(INCLUDES) -o $@ su3_nn_bench.cpp $(LIBS)
 
 all: bench_f64_openmp.exe bench_f32_openmp.exe
 

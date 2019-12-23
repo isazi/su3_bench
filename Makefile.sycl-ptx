@@ -1,11 +1,9 @@
-# depends on bashrc.computecpp and bashrc.pocl
-# Also uses CUDA OpenCL headers and links against its OpenCL.so, 
-#   but LD_LIBRARY_PATH pulls in POCL at runtime
+# depends on bashrc.computecpp
 LAT_CHECK = false
 OCL_INC = $(CUDA_ROOT)/include
 OCL_LIB = $(CUDA_ROOT)/lib64
 
-CC = compute++ -mllvm -inline-threshold=1000 -sycl-driver -sycl-target spirv64 -no-serial-memop -ffast-math
+CC = compute++ -no-serial-memop -Wsycl-pedantic -sycl-driver -sycl-target ptx64 -ffast-math
 CFLAGS = -std=c++14 -O3
 INCLUDES = -DUSE_SYCL -DITERATIONS=1
 ifeq ($(LAT_CHECK),true)
@@ -13,7 +11,7 @@ ifeq ($(LAT_CHECK),true)
 endif
 INCLUDES += -I$(SYCL_HOME)/include -I$(OCL_INC)
 DEPENDS = su3.hpp lattice.hpp mat_nn_sycl.hpp
-LIBS = -L$(SYCL_HOME)/lib -lComputeCpp -L$(OCL_LIB) -lOpenCL
+LIBS = -L$(SYCL_HOME)/lib -lComputeCpp #-L$(OCL_LIB) -lOpenCL
 
 # 32-bit float
 bench_f32_sycl.exe: su3_nn_bench.cpp $(DEPENDS)

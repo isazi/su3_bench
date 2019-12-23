@@ -1,23 +1,23 @@
-# depends on .bashrc.hipsycl
+# depends on bashrc.llvm-intel
 LAT_CHECK = false
 
-CC = syclcc --hipsycl-gpu-arch=sm_70
+CC = clang++ -fsycl
 CFLAGS = -std=c++14 -O3
-INCLUDES = -DUSE_SYCL -DHIPSYCL -DITERATIONS=1
+INCLUDES = -DUSE_SYCL -DITERATIONS=1
 ifeq ($(LAT_CHECK),true)
  INCLUDES += -DLAT_CHECK
 endif
 DEPENDS = su3.hpp lattice.hpp mat_nn_sycl.hpp
 
 # 32-bit float
-bench_f32_hipsycl.exe: su3_nn_bench.cpp $(DEPENDS)
+bench_f32_dpcpp.exe: su3_nn_bench.cpp $(DEPENDS)
 	$(CC) $(CFLAGS) $(INCLUDES) -DPRECISION=1 su3_nn_bench.cpp -o $@ $(LIBS)
 
 # 64-bit float
-bench_f64_hipsycl.exe: su3_nn_bench.cpp $(DEPENDS)
+bench_f64_dpcpp.exe: su3_nn_bench.cpp $(DEPENDS)
 	$(CC) $(CFLAGS) $(INCLUDES) su3_nn_bench.cpp -o $@ $(LIBS)
 
-all: bench_f32_hipsycl.exe bench_f64_hipsycl.exe
+all: bench_f32_dpcpp.exe bench_f64_dpcpp.exe
 
 clean:
-	rm -rf *sycl.exe
+	rm -rf *.exe
