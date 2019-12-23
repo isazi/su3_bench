@@ -51,8 +51,11 @@ double su3_mat_nn(const std::vector<site> &a, const std::vector<su3_matrix> &b, 
   if (wgsize < THREADS_PER_SITE)
     wgsize = THREADS_PER_SITE;
 
-  if (verbose >= 1)
-    std::cout << "Setting workgroup size to " << wgsize << "\n";
+  size_t total_wi = total_sites * wgsize;
+  if (verbose >= 1) {
+    std::cout << "Setting number of work items " << total_wi << std::endl;
+    std::cout << "Setting workgroup size to " << wgsize << std::endl;
+  }
 
   if (verbose >= 3) {
     std::cout << "max compute units = " 
@@ -68,7 +71,6 @@ double su3_mat_nn(const std::vector<site> &a, const std::vector<su3_matrix> &b, 
   cl::sycl::buffer<site, 1>       c_buf {cl::sycl::range<1> {total_sites}};
 
   // benchmark loop
-  size_t total_wi = total_sites * wgsize;
   auto tstart = Clock::now();
   for (int iters=0; iters<iterations; ++iters) {
     // create a command_group to issue commands
