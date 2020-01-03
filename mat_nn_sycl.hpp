@@ -64,11 +64,15 @@ double su3_mat_nn(const std::vector<site> &a, const std::vector<su3_matrix> &b, 
        << queue.get_device().get_info<cl::sycl::info::device::max_work_group_size>() << "\n";
   }
 
-  // wrap arrays in SYCL buffers, suppling global memory pointer implicitly copies the data to the device
+  double ttotal;
+
+  {
+  // wrap arrays in SYCL buffers, suppling global memory pointer implicitly copies the data to the device when needed
   cl::sycl::buffer<site, 1>       a_buf {a.data(), cl::sycl::range<1> {total_sites}};
   cl::sycl::buffer<su3_matrix, 1> b_buf {b.data(), cl::sycl::range<1> {4}};
-  // just create the c buffer on the device, no copy necessary
-  cl::sycl::buffer<site, 1>       c_buf {cl::sycl::range<1> {total_sites}};
+  // The C array  will never be copy from the Host to the Device. Indeed the first aceesor used it a discard_write
+  // The Copy Deive -> Host will occur when the destructor will be called (at the end of the scope)
+  cl::sycl::buffer<site, 1>       c_buf {c.data(), cl::sycl::range<1> {total_sites}};
 
   // benchmark loop
   auto tstart = Clock::now();
@@ -114,12 +118,9 @@ double su3_mat_nn(const std::vector<site> &a, const std::vector<su3_matrix> &b, 
   } // end of iteration loop
   queue.wait();
 
-  double ttotal = std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tstart).count();
+  ttotal = std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tstart).count();
 
-  // Copy the C buffer back to host memory
-  auto d_c = c_buf.get_access<cl::sycl::access::mode::read>();
-  for (size_t i = 0; i < total_sites; ++i)
-	  c[i] = d_c[i];
+  }
 
   return (ttotal /= 1.0e6);
 } // end of SYCL block
