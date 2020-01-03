@@ -81,10 +81,11 @@ double su3_mat_nn(const std::vector<site> &a, const std::vector<su3_matrix> &b, 
       auto d_c = c_buf.get_access<cl::sycl::access::mode::discard_write>(cgh);
 
       // Lambda function defines the kernel scope
-#ifdef HIPSYCL
-      cgh.parallel_for<class k_mat_nn>(
+
+#ifndef HIPSYCL
+      cgh.parallel_for<class k_mat_nn>(program.get_kernel<k_mat_nn>(),
 #else
-      cgh.parallel_for<class k_mat_nn>(program.get_kernel<k_mat_nn>(), 
+      cgh.parallel_for<class k_mat_nn>(
 #endif
       cl::sycl::nd_range<1> {total_wi, wgsize}, [=](cl::sycl::nd_item<1> item) {
         size_t myThread = item.get_global_id(0);
@@ -93,13 +94,19 @@ double su3_mat_nn(const std::vector<site> &a, const std::vector<su3_matrix> &b, 
           int j = (myThread%36)/9;
           int k = (myThread%9)/3;
           int l = myThread%3;
-          Complx cc;
+          Complx cc = {0.0, 0.0};
 #ifndef LAT_CHECK
-          for (int m=0;m<3;m++)
+          for (int m=0;m<3;m++) {
+    #ifndef MILC_COMPLEX
             cc += d_a[mySite].link[j].e[k][m] * d_b[j].e[m][l];
+          }
           d_c[mySite].link[j].e[k][l] = cc;
-#else
-    ;
+    #else
+            CMULSUM(d_a[mySite].link[j].e[k][m], d_b[j].e[m][l], cc);
+          }
+          d_c[mySite].link[j].e[k][l].real = cc.real;
+          d_c[mySite].link[j].e[k][l].imag = cc.imag;
+    #endif
 #endif
         }
       }); // end of the kernel lambda function

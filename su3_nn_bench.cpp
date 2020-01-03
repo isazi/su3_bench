@@ -24,11 +24,6 @@ unsigned int verbose=1;
 int  g_argc;
 char **g_argv;
 
-// OpenCL 1.2 doesn't support complex data types
-#if defined(USE_OPENCL)
-  #define MILC_COMPLEX
-#endif
-
 #include "lattice.hpp"
 
 #ifdef USE_CUDA
@@ -39,6 +34,7 @@ char **g_argv;
 #elif  USE_OPENACC
   #include "mat_nn_openacc.hpp"
 #elif  USE_OPENCL
+  // OpenCL 1.2 doesn't support complex data types
   #define MILC_COMPLEX
   #include "mat_nn_opencl.hpp"
 #elif USE_SYCL
