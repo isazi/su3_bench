@@ -64,11 +64,15 @@ double su3_mat_nn(const std::vector<site> &a, const std::vector<su3_matrix> &b, 
        << queue.get_device().get_info<cl::sycl::info::device::max_work_group_size>() << "\n";
   }
 
-  // wrap arrays in SYCL buffers, suppling global memory pointer implicitly copies the data to the device
+  double ttotal;
+
+  {
+  // wrap arrays in SYCL buffers, suppling global memory pointer implicitly copies the data to the device when needed
   cl::sycl::buffer<site, 1>       a_buf {a.data(), cl::sycl::range<1> {total_sites}};
   cl::sycl::buffer<su3_matrix, 1> b_buf {b.data(), cl::sycl::range<1> {4}};
-  // just create the c buffer on the device, no copy necessary
-  cl::sycl::buffer<site, 1>       c_buf {cl::sycl::range<1> {total_sites}};
+  // The C array  will never be copy from the Host to the Device. Indeed the first aceesor used it a discard_write
+  // The Copy Deive -> Host will occur when the destructor will be called (at the end of the scope)
+  cl::sycl::buffer<site, 1>       c_buf {c.data(), cl::sycl::range<1> {total_sites}};
 
   // benchmark loop
   auto tstart = Clock::now();
@@ -81,10 +85,11 @@ double su3_mat_nn(const std::vector<site> &a, const std::vector<su3_matrix> &b, 
       auto d_c = c_buf.get_access<cl::sycl::access::mode::discard_write>(cgh);
 
       // Lambda function defines the kernel scope
-#ifdef HIPSYCL
-      cgh.parallel_for<class k_mat_nn>(
+
+#ifndef HIPSYCL
+      cgh.parallel_for<class k_mat_nn>(program.get_kernel<k_mat_nn>(),
 #else
-      cgh.parallel_for<class k_mat_nn>(program.get_kernel<k_mat_nn>(), 
+      cgh.parallel_for<class k_mat_nn>(
 #endif
       cl::sycl::nd_range<1> {total_wi, wgsize}, [=](cl::sycl::nd_item<1> item) {
         size_t myThread = item.get_global_id(0);
@@ -93,13 +98,19 @@ double su3_mat_nn(const std::vector<site> &a, const std::vector<su3_matrix> &b, 
           int j = (myThread%36)/9;
           int k = (myThread%9)/3;
           int l = myThread%3;
-          Complx cc;
+          Complx cc = {0.0, 0.0};
 #ifndef LAT_CHECK
-          for (int m=0;m<3;m++)
+          for (int m=0;m<3;m++) {
+    #ifndef MILC_COMPLEX
             cc += d_a[mySite].link[j].e[k][m] * d_b[j].e[m][l];
+          }
           d_c[mySite].link[j].e[k][l] = cc;
-#else
-    ;
+    #else
+            CMULSUM(d_a[mySite].link[j].e[k][m], d_b[j].e[m][l], cc);
+          }
+          d_c[mySite].link[j].e[k][l].real = cc.real;
+          d_c[mySite].link[j].e[k][l].imag = cc.imag;
+    #endif
 #endif
         }
       }); // end of the kernel lambda function
@@ -107,12 +118,9 @@ double su3_mat_nn(const std::vector<site> &a, const std::vector<su3_matrix> &b, 
   } // end of iteration loop
   queue.wait();
 
-  double ttotal = std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tstart).count();
+  ttotal = std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tstart).count();
 
-  // Copy the C buffer back to host memory
-  auto d_c = c_buf.get_access<cl::sycl::access::mode::read>();
-  for (size_t i = 0; i < total_sites; ++i)
-	  c[i] = d_c[i];
+  }
 
   return (ttotal /= 1.0e6);
 } // end of SYCL block
