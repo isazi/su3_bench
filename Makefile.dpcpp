@@ -1,7 +1,7 @@
 # depends on bashrc.llvm-intel
 LAT_CHECK = false
 
-CC = clang++ -fsycl
+CC = dpcpp -fsycl
 CFLAGS = -std=c++14 -O3
 INCLUDES = -DUSE_SYCL -DITERATIONS=1
 ifeq ($(LAT_CHECK),true)
