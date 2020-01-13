@@ -3,7 +3,7 @@ LAT_CHECK = false
 VENDOR = nvidia
 
 ifeq ($(VENDOR),nvidia)
-CC = clang++ -fopenmp -fopenmp-targets=nvptx64-nvidia-cuda -ffast-math
+CC = clang++ -fopenmp -fopenmp-targets=nvptx64-nvidia-cuda
 else ifeq ($(VENDOR),intel)
 CC = icc -qnextgen -fiopenmp -fopenmp-targets=spir64  -D__STRICT_ANSI__ 
 endif 
