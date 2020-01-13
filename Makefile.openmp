@@ -1,7 +1,7 @@
 # depends on bashrc.llvm-10
 LAT_CHECK = false
 
-CC = clang++ -fopenmp -fopenmp-targets=nvptx64-nvidia-cuda -ffast-math
+CC = icx -fiopenmp -fopenmp-targets=spir64 -D__STRICT_ANSI__ 
 CFLAGS += -std=c++14 -O3 -Wno-ignored-attributes -Wno-deprecated-declarations
 INCLUDES = -DUSE_OPENMP
 ifeq ($(LAT_CHECK),true)

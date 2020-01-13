@@ -1,25 +1,34 @@
 # depends on bashrc.llvm-intel
 LAT_CHECK = false
+LINEARIZE = true
 
 CC = dpcpp -fsycl
 CFLAGS = -std=c++14 -O3
 # Sone version of DPCPP doesn't support native complex arythemtic,
-# as a workarround we use our own COMPLEX structure ( -DMILC_COMPLEX).
-INCLUDES = -DUSE_SYCL -DMILC_COMPLEX -DITERATIONS=1
+# as a workarround we use our own COMPLEX structure (-DMILC_COMPLEX).
+INCLUDES = -DMILC_COMPLEX -DUSE_SYCL -DITERATIONS=100
+
 ifeq ($(LAT_CHECK),true)
  INCLUDES += -DLAT_CHECK
 endif
-DEPENDS = su3.hpp lattice.hpp mat_nn_sycl.hpp
+
+DEPENDS = su3.hpp lattice.hpp mat_nn_sycl.hpp mat_nn_sycl_linearize.hpp
 
 # 32-bit float
 bench_f32_dpcpp.exe: su3_nn_bench.cpp $(DEPENDS)
 	$(CC) $(CFLAGS) $(INCLUDES) -DPRECISION=1 su3_nn_bench.cpp -o $@ $(LIBS)
 
+# 32-bit float linearized
+bench_f32_dpcpp_linear.exe: su3_nn_bench.cpp $(DEPENDS)
+	    $(CC) $(CFLAGS) $(INCLUDES) -DLINEAR -DRANDOM_INIT -DPRECISION=1 su3_nn_bench.cpp -o $@ $(LIBS)
+
 # 64-bit float
 bench_f64_dpcpp.exe: su3_nn_bench.cpp $(DEPENDS)
 	$(CC) $(CFLAGS) $(INCLUDES) su3_nn_bench.cpp -o $@ $(LIBS)
 
-all: bench_f32_dpcpp.exe bench_f64_dpcpp.exe
+#64-bit float linearized is not yet implemented
+
+all: bench_f32_dpcpp.exe bench_f32_dpcpp_linear.exe bench_f64_dpcpp.exe 
 
 clean:
 	rm -rf *.exe

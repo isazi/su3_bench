@@ -23,8 +23,6 @@ __kernel void k_mat_nn(
       CMULSUM(a[mySite].link[j].e[k][m], b[j].e[m][l], cc);
     c[mySite].link[j].e[k][l].real = cc.real;
     c[mySite].link[j].e[k][l].imag = cc.imag;
-#else
-    ;
 #endif
   }
 }
