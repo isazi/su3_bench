@@ -1,8 +1,14 @@
 # depends on bashrc.llvm-10
 LAT_CHECK = false
+VENDOR = nvidia
 
-CC = icx -fiopenmp -fopenmp-targets=spir64 -D__STRICT_ANSI__ 
-CFLAGS += -std=c++14 -O3 -Wno-ignored-attributes -Wno-deprecated-declarations
+ifeq ($(VENDOR),nvidia)
+CC = clang++ -fopenmp -fopenmp-targets=nvptx64-nvidia-cuda -ffast-math
+else ifeq ($(VENDOR),intel)
+CC = icc -qnextgen -fiopenmp -fopenmp-targets=spir64  -D__STRICT_ANSI__ 
+endif 
+
+CFLAGS += -std=c++14 -ffast-math -O3 -Wno-ignored-attributes -Wno-deprecated-declarations
 INCLUDES = -DUSE_OPENMP
 ifeq ($(LAT_CHECK),true)
  INCLUDES += -DLAT_CHECK
