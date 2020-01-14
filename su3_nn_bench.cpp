@@ -38,19 +38,39 @@ char **g_argv;
   #define MILC_COMPLEX
   #include "mat_nn_opencl.hpp"
 #elif USE_SYCL
-  #include "mat_nn_sycl.hpp"
+  #ifndef LINEAR
+    #include "mat_nn_sycl.hpp"
+  #else
+    #include "mat_nn_sycl_linearize.hpp"
+  #endif
 #else
   #error Unknown programming model
+#endif
+
+#include <cassert>
+template<class T>
+bool almost_equal(T x, T y, double tol)
+{
+    return std::abs( x - y ) < tol ;
+}
+
+#ifdef RANDOM_INIT
+#include <random>
+std::random_device rd;  //Will be used to obtain a seed for the random number engine
+std::mt19937 gen(rd()); //Standard mersenne_twister_engine seeded with rd()
+std::uniform_real_distribution<> dis(-1.f, 1.f);
 #endif
 
 // initializes su3_matrix to a given value
 void init_link(su3_matrix *s, Complx val) {
   for(int j=0; j<4; ++j) for(int k=0; k<3; ++k) for(int l=0; l<3; ++l) {
-#ifdef MILC_COMPLEX
-    s[j].e[k][l].real=val.real;
-    s[j].e[k][l].imag=val.imag;
+#ifndef RANDOM_INIT
+    s[j].e[k][l] = val;
+#elif !defined MILC_COMPLEX
+    s[j].e[k][l]=dis(gen);
 #else
-    s[j].e[k][l]=val;
+    s[j].e[k][l].real=dis(gen);
+    s[j].e[k][l].imag=dis(gen);
 #endif
   }
 }
@@ -135,34 +155,41 @@ int main(int argc, char **argv)
   }
 
   // benchmark call
-  double ttotal = su3_mat_nn(a, b, c, total_sites, iterations, threads_per_group, device);
+  const double ttotal = su3_mat_nn(a, b, c, total_sites, iterations, threads_per_group, device);
   if (verbose >= 1)
     printf("Total execution time = %f secs\n", ttotal);
-
   // calculate flops/s, etc.
   // each matrix multiply is (3*3)*4*(12 mult + 12 add) = 4*(108 mult + 108 add) = 4*216 ops
-  double tflop = (double)iterations * total_sites * 864.0;
+  const double tflop = (double)iterations * total_sites * 864.0;
   printf("Total GFLOP/s = %.3f\n", tflop / ttotal / 1.0e9);
 
-  // calculate a checksum
-  double sum = 0.0;
-  #pragma omp parallel for reduction(+:sum)
-  for (int i=0;i<total_sites;++i) for(int j=0;j<4;++j) for(int k=0;k<3;++k) for(int l=0;l<3;++l) {
-#ifdef MILC_COMPLEX
-    sum += c[i].link[j].e[k][l].real;
-#else
-    sum += c[i].link[j].e[k][l].real();
-#endif
-  }
-  sum /= (double)total_sites;
+  const double memory_usage = (double)sizeof(site)*(a.capacity()+c.capacity())+sizeof(su3_matrix)*b.capacity();
+  printf("Total GByte/s (GPU memory)  = %.3f\n", iterations * memory_usage / ttotal / 1.0e9);
 
-  if ( round(sum) != (4.0*sizeof(su3_matrix)/(sizeof(Complx))))
-    printf("Checksum FAILED: Sum = %lf\n", sum);
+  // Verification of the result
+  // If too expensive, we can just verify the sum
+  // but I'm paranoid, so I verify each element
+  for (int i=0;i<total_sites;++i) for(int j=0;j<4;++j)  for(int k=0;k<3;++k)  for(int l=0;l<3;++l) {
+        Complx cc = {0.0, 0.0};
+        for(int m=0;m<3;m++) {
+          #ifdef MILC_COMPLEX
+            CMULSUM( a[i].link[j].e[k][m], b[j].e[m][l], cc)
+          #else
+            cc += a[i].link[j].e[k][m] * b[j].e[m][l];
+          #endif
+        }
+        
+        #ifdef MILC_COMPLEX
+           assert(almost_equal(c[i].link[j].e[k][l].real, cc.real, 1E-6));
+           assert(almost_equal(c[i].link[j].e[k][l].imag, cc.imag, 1E-6));
+        #else
+          assert(almost_equal(c[i].link[j].e[k][l], cc, 1E-6));
+        #endif     
+  }
 
   // check memory usage
   if (verbose >= 2) {
-    printf("Total allocation for matrices = %.3f MiB\n", 
-           ((float)sizeof(site)*(a.capacity()+c.capacity())+sizeof(su3_matrix)*b.capacity())/1048576.0);
+    printf("Total allocation for matrices = %.3f MiB\n", memory_usage / 1048576.0);
     struct rusage usage;
     if (getrusage(RUSAGE_SELF, &usage) == 0)
       printf("Approximate memory usage = %.3f MiB\n", (float)usage.ru_maxrss/1024.0);
