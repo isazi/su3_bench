@@ -1,19 +1,20 @@
-# depends on bashrc.computecpp and bashrc.pocl
-# Also uses CUDA OpenCL headers and links against its OpenCL.so, 
-#   but LD_LIBRARY_PATH pulls in POCL at runtime
+# Codeplay's ComputeCpp SYCL compiler
 LAT_CHECK = false
-OCL_INC = $(CUDA_ROOT)/include
-OCL_LIB = $(CUDA_ROOT)/lib64
 
+# depends on bashrc.computecpp and bashrc.pocl
 CC = compute++ -mllvm -inline-threshold=1000 -sycl-driver -sycl-target spirv64 -no-serial-memop -ffast-math
 CFLAGS = -std=c++14 -O3
 INCLUDES = -DUSE_SYCL -DITERATIONS=1
 ifeq ($(LAT_CHECK),true)
  INCLUDES += -DLAT_CHECK
 endif
+# Nominally uses Khronos OpenCL headers, but any CL/cl.h will do
+OCL_INC = $(OCL_INCLUDE)  # https://github.com/KhronosGroup/OpenCL-Headers.git
 INCLUDES += -I$(SYCL_HOME)/include -I$(OCL_INC)
+#
 DEPENDS = su3.hpp lattice.hpp mat_nn_sycl.hpp
-LIBS = -L$(SYCL_HOME)/lib -lComputeCpp -L$(OCL_LIB) -lOpenCL
+# Assumes libOpenCL.so is in LD_LIBRARY_PATH, if not add it explicitly
+LIBS = -L$(SYCL_HOME)/lib -lComputeCpp -lOpenCL
 
 # 32-bit float
 bench_f32_sycl.exe: su3_nn_bench.cpp $(DEPENDS)
