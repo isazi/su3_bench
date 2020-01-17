@@ -55,7 +55,6 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
     use_device = 0;
     for (int j = 0; j < devices.size(); ++j) {
       devices[j].getInfo(CL_DEVICE_TYPE, &device_type);
-printf("device_type[%d] = %lx\n", j, device_type);
       if (device_type == CL_DEVICE_TYPE_GPU) {
         use_device = j;
         break;
