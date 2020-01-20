@@ -4,7 +4,7 @@ LAT_CHECK = false
 # depends on bashrc.computecpp and bashrc.pocl
 CC = compute++ -mllvm -inline-threshold=1000 -sycl-driver -sycl-target spirv64 -no-serial-memop -ffast-math
 CFLAGS = -std=c++14 -O3
-INCLUDES = -DUSE_SYCL -DITERATIONS=1
+INCLUDES = -DUSE_SYCL -DITERATIONS=1 #-DLINEAR
 ifeq ($(LAT_CHECK),true)
  INCLUDES += -DLAT_CHECK
 endif
