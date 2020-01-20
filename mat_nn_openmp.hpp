@@ -40,7 +40,9 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
   // benchmark loop
   auto tstart = Clock::now();
 #ifndef USE_WORKAROUND
-  for (int iters=0; iters<iterations; ++iters) {
+  for (int iters=0; iters<iterations+warmups; ++iters) {
+    if (iters == warmups)
+      tstart = Clock::now();
     #pragma omp target teams distribute
     for(int i=0;i<total_sites;++i) {
       #pragma omp parallel for collapse(3)
@@ -62,7 +64,9 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
     }
   }
 #else
-  for (int iters=0; iters<iterations; ++iters) {
+  for (int iters=0; iters<iterations+warmups; ++iters) {
+    if (iters == warmups)
+      tstart = Clock::now();
     #pragma omp target teams num_teams(num_teams) thread_limit(threads_per_team)
     {
       #pragma omp parallel

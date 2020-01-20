@@ -107,7 +107,9 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
 
   // benchmark loop
   auto tstart = Clock::now();
-  for (int iters=0; iters<iterations; ++iters) {
+  for (int iters=0; iters<iterations+warmups; ++iters) {
+    if (iters == warmups)
+      tstart = Clock::now();
     k_mat_nn(cl::EnqueueArgs(queue, cl::NDRange(total_wi), cl::NDRange(wgsize)), d_a, d_b, d_c, total_sites);
   }
   queue.finish(); 

@@ -15,7 +15,9 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
 
   // benchmark loop
   auto tstart = Clock::now();
-  for (int iters=0; iters<iterations; ++iters) {
+  for (int iters=0; iters<iterations+warmups; ++iters) {
+    if (iters == warmups)
+      tstart = Clock::now();
     #pragma acc parallel loop gang present(d_a[0:len_a], d_b[0:len_b], d_c[0:len_c])
     for(int i=0;i<total_sites;++i) {
       #pragma acc loop worker vector collapse(3)

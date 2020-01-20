@@ -20,6 +20,7 @@ typedef std::chrono::system_clock Clock;
 
 // Global variables
 unsigned int verbose=1;
+size_t       warmups=1;
 // global argc and argv for parsing model specific parameters 
 int  g_argc;
 char **g_argv;
@@ -51,7 +52,11 @@ char **g_argv;
 template<class T>
 bool almost_equal(T x, T y, double tol)
 {
+#ifndef USE_CUDA
     return std::abs( x - y ) < tol ;
+#else
+    return thrust::abs( x - y ) < tol ;
+#endif
 }
 
 #ifdef RANDOM_INIT
@@ -107,7 +112,7 @@ int main(int argc, char **argv)
   g_argc = argc;
   g_argv = argv;
   // parse command line for parameters
-  while ((opt=getopt(argc, argv, ":hi:l:t:v:d:")) != -1) {
+  while ((opt=getopt(argc, argv, ":hi:l:t:v:d:w:")) != -1) {
     switch (opt) {
     case 'i':
       iterations = atoi(optarg);
@@ -118,15 +123,18 @@ int main(int argc, char **argv)
     case 't':
       threads_per_group = atoi(optarg);
       break;
-    case 'd':
-      device = atoi(optarg);
-      break;
     case 'v':
       verbose = atoi(optarg);
       break;
+    case 'd':
+      device = atoi(optarg);
+      break;
+    case 'w':
+      warmups = atoi(optarg);
+      break;
     case 'h':
       fprintf(stderr, "Usage: %s [-i iterations] [-l lattice dimension] \
-[-t threads per workgroup] [-v verbosity level [0,1,2,3]]\n", argv[0]);
+[-t threads per workgroup] [-v verbosity level [0,1,2,3]] [-w warmups]\n", argv[0]);
       exit (1);
     }
   }
@@ -149,7 +157,7 @@ int main(int argc, char **argv)
 
   if (verbose >= 1) {
     printf("Number of sites = %zu^4\n", ldim);
-    printf("Executing %zu iterations\n", iterations);
+    printf("Executing %zu iterations with %zu warmups\n", iterations, warmups);
     if (threads_per_group != 0)
       printf("Threads per group = %zu\n", threads_per_group);
   }
@@ -165,6 +173,7 @@ int main(int argc, char **argv)
 
   const double memory_usage = (double)sizeof(site)*(a.capacity()+c.capacity())+sizeof(su3_matrix)*b.capacity();
   printf("Total GByte/s (GPU memory)  = %.3f\n", iterations * memory_usage / ttotal / 1.0e9);
+  fflush(stdout);
 
   // Verification of the result
   // If too expensive, we can just verify the sum
