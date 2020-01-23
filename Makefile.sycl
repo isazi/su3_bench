@@ -14,7 +14,7 @@ INCLUDES = -I$(SYCL_HOME)/include -I$(OCL_INCLUDE)
 OCLICD_LIB = /global/cfs/cdirs/mpccc/dwdoerf/cori-gpu/OpenCL-ICD-Loader/build
 LIBS = -L$(SYCL_HOME)/lib -lComputeCpp -L$(OCLICD_LIB) -lOpenCL
 
-DEFINES = -DUSE_SYCL -DITERATIONS=1 #-DLINEAR
+DEFINES = -DUSE_SYCL -DITERATIONS=1
 ifeq ($(LAT_CHECK),true)
  DEFINES += -DLAT_CHECK
 endif
