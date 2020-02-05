@@ -95,6 +95,7 @@ double su3_mat_nn(const std::vector<site> &a, const std::vector<su3_matrix> &b, 
           int k = (myThread%9)/3;
           int l = myThread%3;
           Complx cc = {0.0, 0.0};
+#ifndef LAT_CHECK
           for (int m=0;m<3;m++) {
 #define TRY 1
 #if   TRY == 0
@@ -127,6 +128,7 @@ double su3_mat_nn(const std::vector<site> &a, const std::vector<su3_matrix> &b, 
           auto p_c = d_c.get_pointer() + mySite;
           p_c->link[j].e[k][l] = cc;
 #endif
+#endif //LAT_CHECK
         }
       }); // end of the kernel lambda function
     });   // end of command group
