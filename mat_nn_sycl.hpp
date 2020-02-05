@@ -38,6 +38,7 @@ double su3_mat_nn(const std::vector<site> &a, const std::vector<su3_matrix> &b, 
   if (verbose >= 2)
     std::cout << "Using device: " << queue.get_device().get_info<cl::sycl::info::device::name>() << "\n";
 
+#ifndef HIPSYCL
   // Pre-build the kernel
   auto build_start = Clock::now();
   cl::sycl::program program = cl::sycl::program(queue.get_context());
@@ -45,6 +46,7 @@ double su3_mat_nn(const std::vector<site> &a, const std::vector<su3_matrix> &b, 
   double build_time = std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-build_start).count();
   if (verbose >= 3)
     std::cout << "Time to build kernel = " << build_time/1.0e6 << " secs\n";
+#endif
 
   if (wgsize < THREADS_PER_SITE)
     wgsize = THREADS_PER_SITE;
@@ -86,7 +88,11 @@ double su3_mat_nn(const std::vector<site> &a, const std::vector<su3_matrix> &b, 
       auto d_c = c_buf.get_access<cl::sycl::access::mode::discard_write>(cgh);
 
       // Lambda function defines the kernel scope
+#ifndef HIPSYCL
       cgh.parallel_for<class k_mat_nn>(program.get_kernel<k_mat_nn>(),
+#else
+      cgh.parallel_for<class k_mat_nn>(
+#endif
       cl::sycl::nd_range<1> {total_wi, wgsize}, [=](cl::sycl::nd_item<1> item) {
         size_t myThread = item.get_global_id(0);
         size_t mySite = myThread/36;
@@ -106,15 +112,6 @@ double su3_mat_nn(const std::vector<site> &a, const std::vector<su3_matrix> &b, 
             // This code derefrences both d_a and d_b to Complx pointers
             const auto aa = (d_a.get_pointer() + mySite)->link[j].e[k][m];
             const auto bb = (d_b.get_pointer() + j)->e[m][l];
-#elif TRY == 2
-            // Here, d_a matrix is only dereferenced to an su_matrix
-            const auto p_a = (d_a.get_pointer() + mySite)->link[j];
-            const auto aa = p_a.e[k][m];
-            const auto bb = (d_b.get_pointer() + j)->e[m][l];
-#elif TRY == 3
-            // Here, d_b is left as an array of su3_matrix
-            const auto aa = (d_a.get_pointer() + mySite)->link[j].e[k][m];
-            const auto bb = d_b[j].e[m][l];
 #endif
 #ifndef MILC_COMPLEX
             cc += aa * bb;
