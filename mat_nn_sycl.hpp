@@ -1,5 +1,6 @@
 // SYCL implementation
 #include <CL/sycl.hpp>
+#define USE_WORKAROUND
 
 #define THREADS_PER_SITE 36
 
@@ -103,12 +104,11 @@ double su3_mat_nn(const std::vector<site> &a, const std::vector<su3_matrix> &b, 
           Complx cc = {0.0, 0.0};
 #ifndef LAT_CHECK
           for (int m=0;m<3;m++) {
-#define TRY 1
-#if   TRY == 0
+#ifndef USE_WORKAROUND
             // This is the nominal code
             const auto aa = d_a[mySite].link[j].e[k][m];
             const auto bb = d_b[j].e[m][l];
-#elif TRY == 1
+#else
             // This code derefrences both d_a and d_b to Complx pointers
             const auto aa = (d_a.get_pointer() + mySite)->link[j].e[k][m];
             const auto bb = (d_b.get_pointer() + j)->e[m][l];
@@ -119,7 +119,7 @@ double su3_mat_nn(const std::vector<site> &a, const std::vector<su3_matrix> &b, 
             CMULSUM(aa, bb, cc);
 #endif
           }
-#ifndef TRY
+#ifndef USE_WORKAROUND
           d_c[mySite].link[j].e[k][l] = cc;
 #else
           auto p_c = d_c.get_pointer() + mySite;
