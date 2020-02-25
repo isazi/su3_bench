@@ -5,7 +5,7 @@ CC = dpcpp -fsycl
 CFLAGS = -std=c++14 -O3
 # Sone version of DPCPP doesn't support native complex arythemtic,
 # as a workarround we use our own COMPLEX structure (-DMILC_COMPLEX).
-INCLUDES = -DMILC_COMPLEX -DUSE_SYCL -DITERATIONS=100
+INCLUDES = -DMILC_COMPLEX -DUSE_DPCPP -DITERATIONS=100
 
 ifeq ($(LAT_CHECK),true)
  INCLUDES += -DLAT_CHECK
