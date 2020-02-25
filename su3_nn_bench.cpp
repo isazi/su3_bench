@@ -44,6 +44,8 @@ char **g_argv;
   #else
     #include "mat_nn_sycl_linearize.hpp"
   #endif
+#elif USE_DPCPP
+  #include "mat_nn_dpcpp.hpp"
 #else
   #error Unknown programming model
 #endif
