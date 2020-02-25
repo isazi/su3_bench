@@ -1,7 +1,7 @@
 // OpenMP target offload implementation
 #include <omp.h>
 #include <unistd.h>
-//#define USE_WORKAROUND
+#define USE_WORKAROUND
 #define THREADS_PER_SITE 36
 #define NUM_TEAMS 1600
 
@@ -90,19 +90,21 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
           for (int j=0; j<4; ++j) {
             for(int k=0;k<3;k++) {
               for(int l=0;l<3;l++){
-                Complx cc;
+                Complx cc = {0.0, 0.0};
 #ifndef LAT_CHECK
-                for(int m=0;m<3;m++) {
 #ifndef MILC_COMPLEX
+                for(int m=0;m<3;m++) {
                   cc += d_a[i].link[j].e[k][m] * d_b[j].e[m][l];
-#else
-                  CMULSUM(d_a[i].link[j].e[k][m], d_b[j].e[m][l], cc);
-#endif
                 }
                 d_c[i].link[j].e[k][l] = cc;
 #else
-    ;
+                for(int m=0;m<3;m++) {
+                   CMULSUM(d_a[i].link[j].e[k][m], d_b[j].e[m][l], cc);
+                }
+                d_c[i].link[j].e[k][l].real = cc.real;
+                d_c[i].link[j].e[k][l].imag = cc.imag;
 #endif
+#endif  // LAT_CHECK
               }
             }
           }
