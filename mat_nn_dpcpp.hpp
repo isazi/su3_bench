@@ -62,12 +62,18 @@ double su3_mat_nn(const std::vector<site> &a, const std::vector<su3_matrix> &b, 
        << queue.get_device().get_info<cl::sycl::info::device::max_work_group_size>() << "\n";
   }
 
-  double ttotal;
-
-  {
+  // allocate device memory
   site*       d_a = (site*)       cl::sycl::malloc_shared(total_sites * sizeof(site), queue);
-  su3_matrix* d_b = (su3_matrix*) cl::sycl::malloc_shared(total_sites * sizeof(su3_matrix), queue);
+  su3_matrix* d_b = (su3_matrix*) cl::sycl::malloc_shared(4 * sizeof(su3_matrix), queue);
   site*       d_c = (site*)       cl::sycl::malloc_shared(total_sites * sizeof(site), queue);
+  if (d_a == NULL || d_b == NULL || d_c == NULL) {
+    std::cout << "Unable to allocate device memory " << std::endl;
+    exit(1);
+  }
+
+  // Move host side memory to device allocated buffers
+  memcpy(d_a, a.data(), a.size() * sizeof(site));
+  memcpy(d_b, b.data(), b.size() * sizeof(su3_matrix));
 
   // benchmark loop
   auto tstart = Clock::now();
@@ -89,7 +95,6 @@ double su3_mat_nn(const std::vector<site> &a, const std::vector<su3_matrix> &b, 
           Complx cc = {0.0, 0.0};
 #ifndef LAT_CHECK
           for (int m=0;m<3;m++) {
-            // This is the nominal code
             const auto aa = d_a[mySite].link[j].e[k][m];
             const auto bb = d_b[j].e[m][l];
 #ifndef MILC_COMPLEX
@@ -106,10 +111,10 @@ double su3_mat_nn(const std::vector<site> &a, const std::vector<su3_matrix> &b, 
   queue.wait();
   } // end of iteration loop
 
-  ttotal = std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tstart).count();
+  // Move the result back to the host side vector
+  memcpy(c.data(), d_c, c.size() * sizeof(site));
 
-  }
-
+  double ttotal = std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tstart).count();
   return (ttotal /= 1.0e6);
 } // end of SYCL block
 
