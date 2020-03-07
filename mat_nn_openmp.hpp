@@ -134,11 +134,11 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
 #else
   // Baseline implementation
   // Uses the purest intent of OpenMP, but has performance issues
-  // See workarounds below
+  // See USE_WORLAROUND
   for (int iters=0; iters<iterations+warmups; ++iters) {
     if (iters == warmups)
       tstart = Clock::now();
-    #pragma omp target teams distribute
+    #pragma omp target teams distribute thread_limit(threads_per_team)
     for(int i=0;i<total_sites;++i) {
       #pragma omp parallel for collapse(3)
       for (int j=0; j<4; ++j) {
