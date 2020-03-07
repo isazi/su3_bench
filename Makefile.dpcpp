@@ -1,33 +1,36 @@
 # depends on bashrc.llvm-intel
 LAT_CHECK = false
+GPU = nvidia
 
-CC = dpcpp -fsycl
-CFLAGS = -std=c++14 -O3
-# Sone version of DPCPP doesn't support native complex arythemtic,
-# as a workarround we use our own COMPLEX structure (-DMILC_COMPLEX).
-INCLUDES = -DMILC_COMPLEX -DUSE_DPCPP -DITERATIONS=100
+ifeq ($(GPU),nvidia)
+  CC = clang++
+  CFLAGS = -fsycl -fsycl-targets=nvptx64-nvidia-cuda-sycldevice -Xsycl-target-backend '--cuda-gpu-arch=sm_70'
+  INCLUDES = -DUSE_SYCL
+else  # intel
+  CC = dpcpp
+  CFLAGS = -fsycl
+  # As of now, OneAPI DPCPP doesn't support native complex arythemtic,
+  # as a workarround we use our own COMPLEX structure (-DMILC_COMPLEX).
+  INCLUDES = -DUSE_DPCPP -DMILC_COMPLEX
+endif
+CFLAGS += -std=c++14 -O3 -ffast-math
+INCLUDES += -DITERATIONS=100
 
 ifeq ($(LAT_CHECK),true)
  INCLUDES += -DLAT_CHECK
 endif
 
-DEPENDS = su3.hpp lattice.hpp mat_nn_sycl.hpp mat_nn_sycl_linearize.hpp
+DEPENDS = su3.hpp lattice.hpp mat_nn_sycl.hpp
 
 # 32-bit float
 bench_f32_dpcpp.exe: su3_nn_bench.cpp $(DEPENDS)
 	$(CC) $(CFLAGS) $(INCLUDES) -DPRECISION=1 su3_nn_bench.cpp -o $@ $(LIBS)
 
-# 32-bit float linearized
-bench_f32_dpcpp_linear.exe: su3_nn_bench.cpp $(DEPENDS)
-	    $(CC) $(CFLAGS) $(INCLUDES) -DLINEAR -DRANDOM_INIT -DPRECISION=1 su3_nn_bench.cpp -o $@ $(LIBS)
-
 # 64-bit float
 bench_f64_dpcpp.exe: su3_nn_bench.cpp $(DEPENDS)
 	$(CC) $(CFLAGS) $(INCLUDES) su3_nn_bench.cpp -o $@ $(LIBS)
 
-#64-bit float linearized is not yet implemented
-
-all: bench_f32_dpcpp.exe bench_f32_dpcpp_linear.exe bench_f64_dpcpp.exe 
+all: bench_f32_dpcpp.exe bench_f64_dpcpp.exe 
 
 clean:
 	rm -rf *.exe

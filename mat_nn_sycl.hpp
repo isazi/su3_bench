@@ -18,7 +18,8 @@ double su3_mat_nn(const std::vector<site> &a, const std::vector<su3_matrix> &b, 
     for (int j=0; j < pdevices.size(); ++j, ++d) {
       devices.insert(devices.end(), pdevices[j]);
       if (verbose >= 3)
-        std::cout << "Appending device " << d << ": " << pdevices[j].get_info<cl::sycl::info::device::name>() << std::endl;
+        std::cout << "Appending device " << d << ": " << pdevices[j].get_info<cl::sycl::info::device::name>() \
+                  << ":Driver " << pdevices[j].get_info<cl::sycl::info::device::driver_version>() << std::endl;
     }
   }
 
@@ -37,7 +38,9 @@ double su3_mat_nn(const std::vector<site> &a, const std::vector<su3_matrix> &b, 
   }
   cl::sycl::queue queue(target_device);
   if (verbose >= 2)
-    std::cout << "Using device: " << queue.get_device().get_info<cl::sycl::info::device::name>() << "\n";
+    std::cout << "Using device " << target << ": " << queue.get_device().get_info<cl::sycl::info::device::name>() \
+              << ":Driver " << queue.get_device().get_info<cl::sycl::info::device::driver_version>() << std::endl;
+  std::cout << std::flush;
 
 #ifndef HIPSYCL
   // Pre-build the kernel
