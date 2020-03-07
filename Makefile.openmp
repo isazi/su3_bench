@@ -1,19 +1,25 @@
-# depends on bashrc.llvm-10
+# depends on .bashrc.llvm-openmp
 LAT_CHECK = false
-VENDOR = intel
+VENDOR = nvidia
+#COMPILER = pgi
 
 ifeq ($(VENDOR),nvidia)
-CC = clang++ -fopenmp -fopenmp-targets=nvptx64-nvidia-cuda
-CFLAGS += -std=c++14 -ffast-math -O3 -Wno-ignored-attributes -Wno-deprecated-declarations
+  ifeq ($(COMPILER),pgi)
+    CC = pgc++ -std=c++11 -fast -mp=tesla:cc70 --no_exceptions
+  else
+    CC = clang++ -fopenmp -fopenmp-targets=nvptx64-nvidia-cuda
+    CFLAGS = -std=c++14 -ffast-math -O3 -Wno-ignored-attributes -Wno-deprecated-declarations
+  endif
 else ifeq ($(VENDOR),intel)
-CC = icx -fiopenmp -fopenmp-targets=spir64 -D__STRICT_ANSI__
-INCLUDES = -DMILC_COMPLEX
+  CC = icx -fiopenmp -fopenmp-targets=spir64 -D__STRICT_ANSI__
+  INCLUDES = -DMILC_COMPLEX
 endif 
-
 INCLUDES += -DUSE_OPENMP
+
 ifeq ($(LAT_CHECK),true)
  INCLUDES += -DLAT_CHECK
 endif
+
 DEPENDS = su3.hpp lattice.hpp mat_nn_openmp.hpp
 
 bench_f32_openmp.exe: su3_nn_bench.cpp $(DEPENDS)
