@@ -39,13 +39,11 @@ char **g_argv;
   #define MILC_COMPLEX
   #include "mat_nn_opencl.hpp"
 #elif USE_SYCL
-  #ifndef LINEAR
-    #include "mat_nn_sycl.hpp"
-  #else
-    #include "mat_nn_sycl_linearize.hpp"
-  #endif
+  #include "mat_nn_sycl.hpp"
 #elif USE_DPCPP
   #include "mat_nn_dpcpp.hpp"
+#elif USE_HIP
+  #include "mat_nn_hip.hpp"
 #else
   #error Unknown programming model
 #endif
