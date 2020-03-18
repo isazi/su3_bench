@@ -1,9 +1,9 @@
 # depends on .bashrc.hipsycl
 LAT_CHECK = false
 
-CC = syclcc --hipsycl-gpu-arch=sm_70
-CFLAGS = -std=c++14 -O3
-INCLUDES = -DUSE_SYCL -DHIPSYCL -DITERATIONS=1
+CC = syclcc
+CFLAGS = -O3 -Wno-unused-result
+INCLUDES = -DUSE_SYCL -DHIPSYCL
 ifeq ($(LAT_CHECK),true)
  INCLUDES += -DLAT_CHECK
 endif
