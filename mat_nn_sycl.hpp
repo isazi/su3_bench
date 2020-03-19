@@ -122,12 +122,7 @@ double su3_mat_nn(const std::vector<site> &a, const std::vector<su3_matrix> &b, 
             CMULSUM(aa, bb, cc);
 #endif
           }
-#ifndef USE_WORKAROUND
           d_c[mySite].link[j].e[k][l] = cc;
-#else
-          auto p_c = d_c.get_pointer() + mySite;
-          p_c->link[j].e[k][l] = cc;
-#endif
 #endif //LAT_CHECK
         }
       }); // end of the kernel lambda function
