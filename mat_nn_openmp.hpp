@@ -3,11 +3,21 @@
 #include <unistd.h>
 #define USE_WORKAROUND 2
 #define THREADS_PER_SITE 36
-#define DEFAULT_NUM_TEAMS 1600
 
 double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<site> &c, 
               size_t total_sites, size_t iterations, size_t threads_per_team, int use_device)
 {
+  size_t num_teams = 0;
+  int opt;
+  optind = 1;
+  while ((opt=getopt(g_argc, g_argv, ":n:")) != -1) {
+    switch (opt) {
+    case 'n':
+      num_teams = atoi(optarg);
+      break;
+    }
+  }
+
   if (threads_per_team < THREADS_PER_SITE)
     threads_per_team = THREADS_PER_SITE;
 
@@ -28,17 +38,8 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
 #if USE_WORKAROUND == 1
   // This version improves performance over the baseline
   // Contributed by Chris Daley, NERSC
-  size_t num_teams = DEFAULT_NUM_TEAMS;
-  int opt;
-  optind = 1;
-  while ((opt=getopt(g_argc, g_argv, ":n:")) != -1) {
-    switch (opt) {
-    case 'n':
-      num_teams = atoi(optarg);
-      break;
-    }
-  }
-
+  if (num_teams == 0)
+    num_teams = total_sites * THREADS_PER_SITE / (double)threads_per_team + 0.999999;
   if (verbose >= 1) {
     std::cout << "Number of teams = " << num_teams << std::endl;
     std::cout << "Threads per team = " << threads_per_team << std::endl;
@@ -92,7 +93,8 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
   // Similar to Cuda and OpenCL work item approach
   // Initial contribution by Xinmin Tian, Intel
   size_t num_work_items = total_sites * THREADS_PER_SITE;
-  size_t num_teams = num_work_items / (double)threads_per_team + 0.999999;
+  if (num_teams == 0)
+    num_teams = num_work_items / (double)threads_per_team + 0.999999;
 
   if (verbose >= 1) {
     std::cout << "Number of teams = " << num_teams << std::endl;
@@ -134,7 +136,8 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
   // Baseline implementation
   // Uses the purest intent of OpenMP, but has performance issues
   // See USE_WORLAROUND
-  size_t num_teams = total_sites * THREADS_PER_SITE / (double)threads_per_team + 0.999999;
+  if (num_teams == 0)
+    num_teams = total_sites * THREADS_PER_SITE / (double)threads_per_team + 0.999999;
 
   for (int iters=0; iters<iterations+warmups; ++iters) {
     if (iters == warmups)
