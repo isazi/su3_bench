@@ -90,9 +90,9 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
 #elif USE_WORKAROUND == 2
   // This code improves performance over above baseline
   // Similar to Cuda and OpenCL work item approach
-  // Contributed by Xinmin Tian, Intel
-  size_t num_teams = total_sites;
-  size_t num_work_items = num_teams * threads_per_team;
+  // Initial contribution by Xinmin Tian, Intel
+  size_t num_work_items = total_sites * THREADS_PER_SITE;
+  size_t num_teams = num_work_items / (double)threads_per_team + 0.999999;
 
   if (verbose >= 1) {
     std::cout << "Number of teams = " << num_teams << std::endl;
@@ -103,9 +103,8 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
   for (int iters=0; iters<iterations+warmups; ++iters) {
     if (iters == warmups)
       tstart = Clock::now();
-    #pragma omp target teams distribute parallel for
+    #pragma omp target teams distribute parallel for num_teams(num_teams)  thread_limit(threads_per_team)
     for (int id =0; id < num_work_items; id++) {
-
       int i = id/36;
       if (i < total_sites) {
         int j = (id%36)/9;
@@ -135,10 +134,12 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
   // Baseline implementation
   // Uses the purest intent of OpenMP, but has performance issues
   // See USE_WORLAROUND
+  size_t num_teams = total_sites * THREADS_PER_SITE / (double)threads_per_team + 0.999999;
+
   for (int iters=0; iters<iterations+warmups; ++iters) {
     if (iters == warmups)
       tstart = Clock::now();
-    #pragma omp target teams distribute thread_limit(threads_per_team)
+    #pragma omp target teams distribute num_teams(num_teams) thread_limit(threads_per_team)
     for(int i=0;i<total_sites;++i) {
       #pragma omp parallel for collapse(3)
       for (int j=0; j<4; ++j) {
