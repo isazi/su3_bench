@@ -1,6 +1,6 @@
 // SYCL implementation
 #include <CL/sycl.hpp>
-#undef USE_WORKAROUND
+#define USE_WORKAROUND
 
 #define THREADS_PER_SITE 36
 
