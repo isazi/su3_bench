@@ -88,8 +88,8 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
   hipMemcpy(d_a, a.data(), size_a, hipMemcpyHostToDevice);
   hipMemcpy(d_b, b.data(), size_b, hipMemcpyHostToDevice);
 
-  int sitesPerBlock = threadsPerBlock / THREADS_PER_SITE;
-  blocksPerGrid = (total_sites + sitesPerBlock - 1)/sitesPerBlock;
+  double sitesPerBlock = (double)threadsPerBlock / THREADS_PER_SITE;
+  blocksPerGrid = total_sites/sitesPerBlock + 0.999999;
 
   if (verbose >= 1) {
     printf("Number of blocks set to %d\n", blocksPerGrid);
