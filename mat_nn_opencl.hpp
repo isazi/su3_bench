@@ -9,20 +9,33 @@
 
 #define THREADS_PER_SITE 36
 
-// loads an opencl kernel source file into a string
-static inline std::string loadProgram(std::string input)
-{
-    std::ifstream stream(input.c_str());
-    if (!stream.is_open()) {
-        std::cout << "Cannot open file: " << input << std::endl;
-        exit(1);
-    }
-
-     return std::string(
-        std::istreambuf_iterator<char>(stream),
-        (std::istreambuf_iterator<char>()));
-}
-
+//*******************  m_mat_nn.c  (in su3.a) ****************************
+//  void mult_su3_nn( su3_matrix *a,*b,*c )
+//  matrix multiply, no adjoints 
+//  C  <-  A*B	
+static const char kernel_src[] =
+"#include <lattice.hpp>\n"
+"__kernel void k_mat_nn(\n"
+"  __global const site*       restrict a,\n"
+"  __global const su3_matrix* restrict b,\n"
+"  __global       site*       restrict c,\n"
+"           const int         total_sites)\n"
+"{\n"
+"  int myThread = get_global_id(0);\n"
+"  int mySite = myThread/36;\n"
+"  if (mySite < total_sites) {\n"
+"    int j = (myThread%36)/9;\n"
+"    int k = (myThread%9)/3;\n"
+"    int l = myThread%3;\n"
+"    Complx cc = {0.0, 0.0};\n"
+"#ifndef LAT_CHECK\n"
+"    for (int m=0;m<3;m++)\n"
+"      CMULSUM(a[mySite].link[j].e[k][m], b[j].e[m][l], cc);\n"
+"    c[mySite].link[j].e[k][l].real = cc.real;\n"
+"    c[mySite].link[j].e[k][l].imag = cc.imag;\n"
+"#endif\n"
+"  }\n"
+"}\n";
 
 double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<site> &c, 
               size_t total_sites, size_t iterations, size_t wgsize, int use_device)
@@ -79,12 +92,13 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
 #endif
   if (verbose >= 2)
     std::cout << "Building Kernel with: " << build_args << std::endl;
-  cl::Program program(context, loadProgram("k_mat_nn.cl"), false);
+  cl::Program program(context, cl::Program::Sources(1, std::make_pair(kernel_src, strlen(kernel_src))));
   if (program.build(build_args) != CL_SUCCESS) {
     std::cout << "ERROR: OpenCL kernel failed to build" << std::endl;
     exit(1);
   }
-  auto k_mat_nn = cl::make_kernel<cl::Buffer, cl::Buffer, cl::Buffer, int>(program, "k_mat_nn");
+  cl::Kernel k_mat_nn(program, "k_mat_nn");
+
   if (verbose >= 2) {
     std::string s;
     device.getInfo(CL_DEVICE_NAME, &s);
@@ -96,8 +110,11 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
   auto d_b = cl::Buffer(context, begin(b), end(b), true);
   auto d_c = cl::Buffer(context, CL_MEM_READ_WRITE, sizeof(site)*c.size());
 
+  // make sure workgroup size is the kernel algorithm minimum
   if (wgsize < THREADS_PER_SITE)
     wgsize = THREADS_PER_SITE;
+  //
+  // set the global range
   size_t total_wi = total_sites * THREADS_PER_SITE;
 
   if (verbose >= 1) {
@@ -105,18 +122,24 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
     std::cout << "Setting workgroup size to " << wgsize << std::endl;
   }
 
+  // set k_mat_nn arguments
+  k_mat_nn.setArg(0, d_a);
+  k_mat_nn.setArg(1, d_b);
+  k_mat_nn.setArg(2, d_c);
+  k_mat_nn.setArg(3, static_cast<cl_int>(total_sites));
+
   // benchmark loop
   auto tstart = Clock::now();
   for (int iters=0; iters<iterations+warmups; ++iters) {
     if (iters == warmups)
       tstart = Clock::now();
-    k_mat_nn(cl::EnqueueArgs(queue, cl::NDRange(total_wi), cl::NDRange(wgsize)), d_a, d_b, d_c, total_sites);
+    queue.enqueueNDRangeKernel(k_mat_nn, cl::NullRange, cl::NDRange(total_wi), cl::NDRange(wgsize));
   }
   queue.finish(); 
   double ttotal = std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tstart).count();
 
   // copy data back from device
-  cl::copy(queue, d_c, begin(c), end(c));
+  queue.enqueueReadBuffer(d_c, CL_TRUE, 0, c.size()*sizeof(site), c.data());
 
   return (ttotal /= 1.0e6);
 }
