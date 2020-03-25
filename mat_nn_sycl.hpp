@@ -1,6 +1,6 @@
 // SYCL implementation
 #include <CL/sycl.hpp>
-#define USE_WORKAROUND
+#undef USE_WORKAROUND
 
 #define THREADS_PER_SITE 36
 
@@ -23,7 +23,7 @@ double su3_mat_nn(const std::vector<site> &a, const std::vector<su3_matrix> &b, 
     }
   }
 
-  // Create a SYCL queue
+  // Create a SYCL queue and set the device
   cl::sycl::device target_device;
   if (target < 0) {
     cl::sycl::default_selector selector;
@@ -40,6 +40,26 @@ double su3_mat_nn(const std::vector<site> &a, const std::vector<su3_matrix> &b, 
   if (verbose >= 2)
     std::cout << "Using device " << target << ": " << queue.get_device().get_info<cl::sycl::info::device::name>() \
               << ":Driver " << queue.get_device().get_info<cl::sycl::info::device::driver_version>() << std::endl;
+
+  // FYI, look at device maximums
+  if (verbose >= 3) {
+    std::cout << "max compute units = " 
+       << queue.get_device().get_info<cl::sycl::info::device::max_compute_units>() << "\n";
+    std::cout << "max workgroup size = " 
+       << queue.get_device().get_info<cl::sycl::info::device::max_work_group_size>() << "\n";
+  }
+
+  // check to make sure the workgroup size is sufficient for the algorithm
+  if (wgsize < THREADS_PER_SITE)
+    wgsize = THREADS_PER_SITE;
+
+  // set the total number of work items
+  size_t total_wi = total_sites * THREADS_PER_SITE;
+  if (verbose >= 3) {
+    std::cout << "Setting number of work items " << total_wi << std::endl;
+    std::cout << "Workgroup size is " << wgsize << std::endl;
+  }
+
   std::cout << std::flush;
 
 #ifndef HIPSYCL
@@ -52,25 +72,6 @@ double su3_mat_nn(const std::vector<site> &a, const std::vector<su3_matrix> &b, 
     std::cout << "Time to build kernel = " << build_time/1.0e6 << " secs\n";
 #endif
 
-  if (wgsize < THREADS_PER_SITE)
-    wgsize = THREADS_PER_SITE;
-
-  size_t total_wi = total_sites * wgsize;
-  if (verbose >= 1) {
-    std::cout << "Setting number of work items " << total_wi << std::endl;
-    std::cout << "Setting workgroup size to " << wgsize << std::endl;
-  }
-
-  if (verbose >= 3) {
-    std::cout << "max compute units = " 
-       << queue.get_device().get_info<cl::sycl::info::device::max_compute_units>() << "\n";
-    std::cout << "max workgroup size = " 
-       << queue.get_device().get_info<cl::sycl::info::device::max_work_group_size>() << "\n";
-  }
-
-  double ttotal;
-
-  {
   // wrap arrays in SYCL buffers, suppling global memory pointer implicitly copies the data to the device when needed
   cl::sycl::buffer<site, 1>       a_buf {a.data(), cl::sycl::range<1> {total_sites}};
   cl::sycl::buffer<su3_matrix, 1> b_buf {b.data(), cl::sycl::range<1> {4}};
@@ -130,9 +131,7 @@ double su3_mat_nn(const std::vector<site> &a, const std::vector<su3_matrix> &b, 
   queue.wait();
   } // end of iteration loop
 
-  ttotal = std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tstart).count();
-
-  }
+  double ttotal = std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tstart).count();
 
   return (ttotal /= 1.0e6);
 } // end of SYCL block

@@ -98,7 +98,7 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
 
   if (wgsize < THREADS_PER_SITE)
     wgsize = THREADS_PER_SITE;
-  size_t total_wi = total_sites * wgsize;
+  size_t total_wi = total_sites * THREADS_PER_SITE;
 
   if (verbose >= 1) {
     std::cout << "Setting number of work items " << total_wi << std::endl;

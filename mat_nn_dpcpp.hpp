@@ -1,4 +1,4 @@
-// SYCL implementation
+// Intel DPCPP implementation
 #include <CL/sycl.hpp>
 
 #define THREADS_PER_SITE 36
@@ -21,7 +21,7 @@ double su3_mat_nn(const std::vector<site> &a, const std::vector<su3_matrix> &b, 
     }
   }
 
-  // Create a SYCL queue
+  // Create a SYCL queue and set the device
   cl::sycl::device target_device;
   if (target < 0) {
     cl::sycl::default_selector selector;
@@ -38,6 +38,27 @@ double su3_mat_nn(const std::vector<site> &a, const std::vector<su3_matrix> &b, 
   if (verbose >= 2)
     std::cout << "Using device: " << queue.get_device().get_info<cl::sycl::info::device::name>() << "\n";
 
+  // FYI, look at device maximums
+  if (verbose >= 3) {
+    std::cout << "max compute units = " 
+       << queue.get_device().get_info<cl::sycl::info::device::max_compute_units>() << "\n";
+    std::cout << "max workgroup size = " 
+       << queue.get_device().get_info<cl::sycl::info::device::max_work_group_size>() << "\n";
+  }
+
+  // check to make sure the workgroup size is sufficient for the algorithm
+  if (wgsize < THREADS_PER_SITE)
+    wgsize = THREADS_PER_SITE;
+
+  // set the total number of work items
+  size_t total_wi = total_sites * THREADS_PER_SITE;
+  if (verbose >= 3) {
+    std::cout << "Setting number of work items " << total_wi << std::endl;
+    std::cout << "Workgroup size is " << wgsize << std::endl;
+  }
+
+  std::cout << std::flush;
+
   // Pre-build the kernel
   auto build_start = Clock::now();
   cl::sycl::program program = cl::sycl::program(queue.get_context());
@@ -45,22 +66,6 @@ double su3_mat_nn(const std::vector<site> &a, const std::vector<su3_matrix> &b, 
   double build_time = std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-build_start).count();
   if (verbose >= 3)
     std::cout << "Time to build kernel = " << build_time/1.0e6 << " secs\n";
-
-  if (wgsize < THREADS_PER_SITE)
-    wgsize = THREADS_PER_SITE;
-
-  size_t total_wi = total_sites * wgsize;
-  if (verbose >= 1) {
-    std::cout << "Setting number of work items " << total_wi << std::endl;
-    std::cout << "Setting workgroup size to " << wgsize << std::endl;
-  }
-
-  if (verbose >= 3) {
-    std::cout << "max compute units = " 
-       << queue.get_device().get_info<cl::sycl::info::device::max_compute_units>() << "\n";
-    std::cout << "max workgroup size = " 
-       << queue.get_device().get_info<cl::sycl::info::device::max_work_group_size>() << "\n";
-  }
 
   // allocate device memory
   site*       d_a = (site*)       cl::sycl::malloc_shared(total_sites * sizeof(site), queue);
@@ -111,10 +116,11 @@ double su3_mat_nn(const std::vector<site> &a, const std::vector<su3_matrix> &b, 
   queue.wait();
   } // end of iteration loop
 
+  double ttotal = std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tstart).count();
+
   // Move the result back to the host side vector
   memcpy(c.data(), d_c, c.size() * sizeof(site));
 
-  double ttotal = std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tstart).count();
   return (ttotal /= 1.0e6);
 } // end of SYCL block
 
