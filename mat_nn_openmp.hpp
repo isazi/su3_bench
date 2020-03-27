@@ -1,8 +1,10 @@
 // OpenMP target offload implementation
 #include <omp.h>
 #include <unistd.h>
-#define USE_WORKAROUND 2
 #define THREADS_PER_SITE 36
+#ifndef USE_WORKAROUND
+  #define USE_WORKAROUND 2
+#endif
 
 double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<site> &c, 
               size_t total_sites, size_t iterations, size_t threads_per_team, int use_device)
