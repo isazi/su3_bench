@@ -1,7 +1,12 @@
 #
 LAT_CHECK = false
 
+# Compiler is gnu | clang
 CC = g++
+ifeq ($(COMPILER),clang)
+  CC = clang++
+endif
+
 CFLAGS = -std=c++14 -O3 -fopenmp -Wno-ignored-attributes -Wno-deprecated-declarations
 LIBS = -lOpenCL
 
