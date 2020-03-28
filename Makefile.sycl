@@ -2,17 +2,10 @@
 
 LAT_CHECK = false
 
-# depends on bashrc.computecpp and bashrc.pocl
 CC = compute++ -mllvm -inline-threshold=1000 -sycl-driver -sycl-target spirv64 -no-serial-memop -ffast-math
 CFLAGS = -std=c++14 -O3
 
-# Nominally uses Khronos OpenCL headers, but any CL/cl.h will do
-OCL_INCLUDE = /global/cfs/cdirs/mpccc/dwdoerf/cori-gpu/OpenCL-Headers
-INCLUDES = -I$(SYCL_HOME)/include -I$(OCL_INCLUDE)
-
-# Nominally uses Khronos OpenCL ICD loader, by any libOpenCL.so will do
-OCLICD_LIB = /global/cfs/cdirs/mpccc/dwdoerf/cori-gpu/OpenCL-ICD-Loader/build
-LIBS = -L$(SYCL_HOME)/lib -lComputeCpp -L$(OCLICD_LIB) -lOpenCL
+LIBS = -lComputeCpp -lOpenCL
 
 DEFINES = -DUSE_SYCL
 ifeq ($(LAT_CHECK),true)
