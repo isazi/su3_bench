@@ -1,5 +1,5 @@
 #
-# Vendor can be nvidia | intel
+# Vendor can be nvidia | intel | amd
 ifndef VENDOR
   VENDOR = nvidia
 endif
@@ -17,13 +17,21 @@ DEFINES = -DUSE_OPENMP -DUSE_WORKAROUND=$(VERSION)
 
 ifeq ($(VENDOR),nvidia)
   ifeq ($(COMPILER),pgi)
-    CC = pgc++ -std=c++11 -fast -mp=tesla:cc70 --no_exceptions
+    CC = pgc++
+    CFLAGS = -std=c++11 -fast -mp=tesla:cc70 --no_exceptions
   else
-    CC = clang++ -fopenmp -fopenmp-targets=nvptx64-nvidia-cuda
+    CC = clang++
     CFLAGS = -std=c++11 -ffast-math -O3 -Wno-ignored-attributes -Wno-deprecated-declarations
+    CFLAGS += -fopenmp -fopenmp-targets=nvptx64-nvidia-cuda
   endif
 else ifeq ($(VENDOR),intel)
-  CC = icx -fiopenmp -fopenmp-targets=spir64 -D__STRICT_ANSI__
+  CC = icx
+  CFLAGS = -fiopenmp -fopenmp-targets=spir64 -D__STRICT_ANSI__
+  DEFINES += -DMILC_COMPLEX
+else ifeq ($(VENDOR),amd)
+  CC = clang++
+  CFLAGS = -std=c++14 -ffast-math -O3 -Wno-ignored-attributes -Wno-deprecated-declarations
+  CFLAGS += -fopenmp -fopenmp-targets=amdgcn-amd-amdhsa -Xopenmp-target=amdgcn-amd-amdhsa -march=gfx906
   DEFINES += -DMILC_COMPLEX
 endif 
 
@@ -34,7 +42,7 @@ endif
 DEPENDS = su3.hpp lattice.hpp mat_nn_openmp.hpp
 
 bench_f32_openmp.exe: su3_nn_bench.cpp $(DEPENDS)
-	$(CC) -DPRECISION=1 $(CFLAGS) $(DEFINES) -o $@ su3_nn_bench.cpp $(LIBS)
+	$(CC) $(CFLAGS) -DPRECISION=1 $(DEFINES) -o $@ su3_nn_bench.cpp $(LIBS)
 
 bench_f64_openmp.exe: su3_nn_bench.cpp $(DEPENDS)
 	$(CC) $(CFLAGS) $(DEFINES) -o $@ su3_nn_bench.cpp $(LIBS)
