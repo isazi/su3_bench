@@ -5,6 +5,7 @@
 #include <math.h>
 #include <vector>
 #include <iostream>
+#include <string>
 #include <chrono>
 typedef std::chrono::system_clock Clock;
 
@@ -49,6 +50,7 @@ char **g_argv;
 #endif
 
 #include <cassert>
+#include <cmath>
 template<class T>
 bool almost_equal(T x, T y, double tol)
 {
