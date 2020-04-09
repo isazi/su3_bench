@@ -24,7 +24,7 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
     }
   }
 
-  if (threads_per_team < THREADS_PER_SITE)
+  if (threads_per_team == 0)
     threads_per_team = THREADS_PER_SITE;
 
   site *d_a, *d_c;
@@ -70,7 +70,6 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
             for(int k=0;k<3;k++) {
               for(int l=0;l<3;l++){
                 Complx cc = {0.0, 0.0};
-#ifndef LAT_CHECK
 #ifndef MILC_COMPLEX
                 for(int m=0;m<3;m++) {
                   cc += d_a[i].link[j].e[k][m] * d_b[j].e[m][l];
@@ -83,7 +82,6 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
                 d_c[i].link[j].e[k][l].real = cc.real;
                 d_c[i].link[j].e[k][l].imag = cc.imag;
 #endif
-#endif  // LAT_CHECK
               }
             }
           }
@@ -116,7 +114,6 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
         int l = id%3;
 
         Complx cc = {0.0, 0.0};
-#ifndef LAT_CHECK
 #ifndef MILC_COMPLEX
         for(int m=0;m<3;m++) {
           cc += d_a[i].link[j].e[k][m] * d_b[j].e[m][l];
@@ -129,7 +126,6 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
         d_c[i].link[j].e[k][l].real = cc.real;
         d_c[i].link[j].e[k][l].imag = cc.imag;
 #endif
-#endif  // LAT_CHECK
       }
     }
   }
@@ -148,7 +144,6 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
         for(int k=0;k<3;k++) {
           for(int l=0;l<3;l++){
             Complx cc = {0.0, 0.0};
-#ifndef LAT_CHECK
 #ifndef MILC_COMPLEX
             for(int m=0;m<3;m++) {
                cc += d_a[i].link[j].e[k][m] * d_b[j].e[m][l];
@@ -161,7 +156,6 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
             d_c[i].link[j].e[k][l].real = cc.real;
             d_c[i].link[j].e[k][l].imag = cc.imag;
 #endif
-#endif  // LAT_CHECK
           }
         }
       }

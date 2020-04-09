@@ -47,7 +47,7 @@ double su3_mat_nn(const std::vector<site> &a, const std::vector<su3_matrix> &b, 
   }
 
   // check to make sure the workgroup size is sufficient for the algorithm
-  if (wgsize < THREADS_PER_SITE)
+  if (wgsize == 0)
     wgsize = THREADS_PER_SITE;
 
   // set the total number of work items
@@ -98,7 +98,6 @@ double su3_mat_nn(const std::vector<site> &a, const std::vector<su3_matrix> &b, 
           int k = (myThread%9)/3;
           int l = myThread%3;
           Complx cc = {0.0, 0.0};
-#ifndef LAT_CHECK
           for (int m=0;m<3;m++) {
             const auto aa = d_a[mySite].link[j].e[k][m];
             const auto bb = d_b[j].e[m][l];
@@ -109,7 +108,6 @@ double su3_mat_nn(const std::vector<site> &a, const std::vector<su3_matrix> &b, 
 #endif
           }
           d_c[mySite].link[j].e[k][l] = cc;
-#endif //LAT_CHECK
         }
       }); // end of the kernel lambda function
     });   // end of command group

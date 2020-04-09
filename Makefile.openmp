@@ -11,9 +11,9 @@ endif
 ifndef VERSION
   VERSION = 2
 endif
-LAT_CHECK = false
 
 DEFINES = -DUSE_OPENMP -DUSE_WORKAROUND=$(VERSION)
+DEPENDS = su3.hpp lattice.hpp mat_nn_openmp.hpp
 
 ifeq ($(VENDOR),nvidia)
   ifeq ($(COMPILER),pgi)
@@ -34,12 +34,6 @@ else ifeq ($(VENDOR),amd)
   CFLAGS += -fopenmp -fopenmp-targets=amdgcn-amd-amdhsa -Xopenmp-target=amdgcn-amd-amdhsa -march=gfx906
   DEFINES += -DMILC_COMPLEX
 endif 
-
-ifeq ($(LAT_CHECK),true)
- DEFINES += -DLAT_CHECK
-endif
-
-DEPENDS = su3.hpp lattice.hpp mat_nn_openmp.hpp
 
 bench_f32_openmp.exe: su3_nn_bench.cpp $(DEPENDS)
 	$(CC) $(CFLAGS) -DPRECISION=1 $(DEFINES) -o $@ su3_nn_bench.cpp $(LIBS)

@@ -1,20 +1,12 @@
 #
-LAT_CHECK = false
-
 # Compiler is gnu | clang
 CC = g++
 ifeq ($(COMPILER),clang)
   CC = clang++
 endif
-
 CFLAGS = -std=c++14 -O3 -fopenmp -Wno-ignored-attributes -Wno-deprecated-declarations
 LIBS = -lOpenCL
-
 DEFINES = -DUSE_OPENCL
-ifeq ($(LAT_CHECK),true)
- DEFINES += -DLAT_CHECK
-endif
-
 DEPENDS = su3.h lattice.hpp mat_nn_opencl.hpp
 
 bench_f32_opencl.exe: su3_nn_bench.cpp $(DEPENDS)

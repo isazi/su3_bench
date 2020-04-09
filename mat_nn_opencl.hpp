@@ -29,12 +29,10 @@ static const char kernel_src[] =
 "    int k = (myThread%9)/3;\n"
 "    int l = myThread%3;\n"
 "    Complx cc = {0.0, 0.0};\n"
-"#ifndef LAT_CHECK\n"
 "    for (int m=0;m<3;m++)\n"
 "      CMULSUM(a[mySite].link[j].e[k][m], b[j].e[m][l], cc);\n"
 "    c[mySite].link[j].e[k][l].real = cc.real;\n"
 "    c[mySite].link[j].e[k][l].imag = cc.imag;\n"
-"#endif\n"
 "  }\n"
 "}\n";
 
@@ -92,11 +90,7 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
 
   // build the kernel
   char build_args[80];
-#ifndef LAT_CHECK
   sprintf(build_args, "-I. -DPRECISION=%d -DUSE_OPENCL", PRECISION);
-#else
-  sprintf(build_args, "-I. -DPRECISION=%d -DUSE_OPENCL -DLAT_CHECK", PRECISION);
-#endif
   if (verbose >= 2)
     std::cout << "Building Kernel with: " << build_args << std::endl;
   cl::Program program(context, cl::string(kernel_src));

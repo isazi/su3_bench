@@ -25,14 +25,10 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
         for(int k=0;k<3;k++) {
           for(int l=0;l<3;l++){
             Complx cc;
-#ifndef LAT_CHECK
             #pragma acc loop seq
             for(int m=0;m<3;m++)
                cc += d_a[i].link[j].e[k][m] * d_b[j].e[m][l];
             d_c[i].link[j].e[k][l] = cc;
-#else
-    ;
-#endif
           }
         }
       }

@@ -1,5 +1,4 @@
-# depends on bashrc.llvm-intel
-LAT_CHECK = false
+#
 # ARCH = intel | intel-anl | nvidia
 ARCH = nvidia
 
@@ -22,11 +21,6 @@ else  # intel
 endif
 CFLAGS += -std=c++14 -O3 -ffast-math
 INCLUDES += -DITERATIONS=100
-
-ifeq ($(LAT_CHECK),true)
- INCLUDES += -DLAT_CHECK
-endif
-
 DEPENDS += su3.hpp lattice.hpp
 
 # 32-bit float

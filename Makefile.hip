@@ -7,14 +7,9 @@ ifeq (${HIP_PLATFORM}, hcc)
 	HIPCC_FLAGS = -Wno-deprecated-register
 endif
 
-LAT_CHECK = false
-
 CC = hipcc $(HIPCC_FLAGS)
 CFLAGS = --std c++14 
 INCLUDES = -DUSE_HIP
-ifeq ($(LAT_CHECK),true)
- INCLUDES += -DLAT_CHECK
-endif
 DEPENDS = su3.hpp lattice.hpp mat_nn_hip.hpp
 
 bench_f32_hip.exe: su3_nn_bench.cpp $(DEPENDS)

@@ -1,12 +1,7 @@
-# depends on .bashrc.hipsycl
-LAT_CHECK = false
-
+#
 CC = syclcc
 CFLAGS = -O3 -Wno-unused-result
 INCLUDES = -DUSE_SYCL -DHIPSYCL
-ifeq ($(LAT_CHECK),true)
- INCLUDES += -DLAT_CHECK
-endif
 DEPENDS = su3.hpp lattice.hpp mat_nn_sycl.hpp
 
 # 32-bit float

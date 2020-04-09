@@ -27,13 +27,9 @@ __global__ void k_mat_nn(
     int k = (myThread%9)/3;
     int l = myThread%3;
     Complx cc;
-#ifndef LAT_CHECK
     for (int m=0;m<3;m++)
       cc += a[mySite].link[j].e[k][m] * b[j].e[m][l];
     c[mySite].link[j].e[k][l] = cc;
-#else
-    ;
-#endif
   }
 }
 
@@ -45,7 +41,7 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
   int size_b = sizeof(su3_matrix) * 4;
   int size_c = sizeof(site) * total_sites;
 
-  if (threadsPerBlock < THREADS_PER_SITE)
+  if (threadsPerBlock == 0)
     threadsPerBlock = THREADS_PER_SITE;
 
   // Device initialization
