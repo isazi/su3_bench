@@ -1,17 +1,24 @@
 # depends on bashrc.llvm-intel
 LAT_CHECK = false
-GPU = nvidia
+# ARCH = intel | intel-anl | nvidia
+ARCH = nvidia
 
-ifeq ($(GPU),nvidia)
+ifeq ($(ARCH),nvidia)
   CC = clang++
   CFLAGS = -fsycl -fsycl-targets=nvptx64-nvidia-cuda-sycldevice -Xsycl-target-backend '--cuda-gpu-arch=sm_70'
   INCLUDES = -DUSE_SYCL
+  DEPENDS = mat_nn_sycl.hpp
 else  # intel
   CC = dpcpp
   CFLAGS = -fsycl
-  # As of now, OneAPI DPCPP doesn't support native complex arythemtic,
-  # as a workarround we use our own COMPLEX structure (-DMILC_COMPLEX).
-  INCLUDES = -DUSE_DPCPP -DMILC_COMPLEX
+  ifeq ($(ARCH),intel-anl)
+    # As of now, ANL's isntance of OneAPI DPCPP doesn't support native complex arythemtic,
+    # as a workarround we use our own COMPLEX structure (-DMILC_COMPLEX).
+    INCLUDES = -DUSE_DPCPP -DMILC_COMPLEX
+  else
+    INCLUDES = -DUSE_DPCPP
+  endif
+  DEPENDS = mat_nn_dpcpp.hpp
 endif
 CFLAGS += -std=c++14 -O3 -ffast-math
 INCLUDES += -DITERATIONS=100
@@ -20,7 +27,7 @@ ifeq ($(LAT_CHECK),true)
  INCLUDES += -DLAT_CHECK
 endif
 
-DEPENDS = su3.hpp lattice.hpp mat_nn_sycl.hpp
+DEPENDS += su3.hpp lattice.hpp
 
 # 32-bit float
 bench_f32_dpcpp.exe: su3_nn_bench.cpp $(DEPENDS)
