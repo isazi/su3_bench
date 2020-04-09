@@ -1,7 +1,9 @@
 // OpenMP target offload implementation
 #include <omp.h>
 #include <unistd.h>
+
 #define THREADS_PER_SITE 36
+#define NUM_TEAMS 1536
 #ifndef USE_WORKAROUND
   #define USE_WORKAROUND 2
 #endif
@@ -9,7 +11,9 @@
 double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<site> &c, 
               size_t total_sites, size_t iterations, size_t threads_per_team, int use_device)
 {
-  size_t num_teams = 0;
+  size_t num_teams = NUM_TEAMS;
+
+  // Set num_teams from the command line
   int opt;
   optind = 1;
   while ((opt=getopt(g_argc, g_argv, ":n:")) != -1) {
@@ -40,8 +44,6 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
 #if USE_WORKAROUND == 1
   // This version improves performance over the baseline
   // Contributed by Chris Daley, NERSC
-  if (num_teams == 0)
-    num_teams = total_sites * THREADS_PER_SITE / (double)threads_per_team + 0.999999;
   if (verbose >= 1) {
     std::cout << "Number of teams = " << num_teams << std::endl;
     std::cout << "Threads per team = " << threads_per_team << std::endl;
@@ -95,8 +97,6 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
   // Similar to Cuda and OpenCL work item approach
   // Initial contribution by Xinmin Tian, Intel
   size_t num_work_items = total_sites * THREADS_PER_SITE;
-  if (num_teams == 0)
-    num_teams = num_work_items / (double)threads_per_team + 0.999999;
 
   if (verbose >= 1) {
     std::cout << "Number of teams = " << num_teams << std::endl;
@@ -138,9 +138,6 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
   // Baseline implementation
   // Uses the purest intent of OpenMP, but has performance issues
   // See USE_WORLAROUND
-  if (num_teams == 0)
-    num_teams = total_sites * THREADS_PER_SITE / (double)threads_per_team + 0.999999;
-
   for (int iters=0; iters<iterations+warmups; ++iters) {
     if (iters == warmups)
       tstart = Clock::now();
