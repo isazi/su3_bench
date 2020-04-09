@@ -1,7 +1,8 @@
 // OpenCL implementation
-#include <CL/cl.hpp>
-#include <fstream>
-#include <string>
+// Preferably use the Khronos CL/cl2.hpp C++ definitions
+#define CL_HPP_TARGET_OPENCL_VERSION 120 
+#define CL_HPP_MINIMUM_OPENCL_VERSION 120
+#include <CL/cl2.hpp>
 
 #ifndef DEVICE
 #  define DEVICE CL_DEVICE_TYPE_ALL
@@ -11,8 +12,8 @@
 
 //*******************  m_mat_nn.c  (in su3.a) ****************************
 //  void mult_su3_nn( su3_matrix *a,*b,*c )
-//  matrix multiply, no adjoints 
-//  C  <-  A*B	
+//  matrix multiply, no adjoints
+//  C  <-  A*B
 static const char kernel_src[] =
 "#include <lattice.hpp>\n"
 "__kernel void k_mat_nn(\n"
@@ -37,6 +38,7 @@ static const char kernel_src[] =
 "  }\n"
 "}\n";
 
+// OpenCL implementation of su3_mat_nn()
 double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<site> &c, 
               size_t total_sites, size_t iterations, size_t wgsize, int use_device)
 { 
@@ -56,7 +58,6 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
       devices.insert(devices.end(), pdevices[j]);
     }
   }
-
   if (devices.size() == 0) {
     std::cout << "ERROR: No devices found\n" << std::endl;
     exit(1);
@@ -78,12 +79,18 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
     std::cout << "ERROR: Device " << use_device << " not found\n" << std::endl;
     exit(1);
   }
+  if (verbose >= 2) {
+    std::string s;
+    devices[use_device].getInfo(CL_DEVICE_NAME, &s);
+    std::cout << "Using device: " << s << std::endl;
+  }
 
+  // Set up the OpenCl context, queue, program, etc.
   cl::Device device=devices[use_device];
   cl::Context context(device);
   cl::CommandQueue queue(context);
 
-  // make the kernel
+  // build the kernel
   char build_args[80];
 #ifndef LAT_CHECK
   sprintf(build_args, "-I. -DPRECISION=%d -DUSE_OPENCL", PRECISION);
@@ -92,17 +99,10 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
 #endif
   if (verbose >= 2)
     std::cout << "Building Kernel with: " << build_args << std::endl;
-  cl::Program program(context, cl::Program::Sources(1, std::make_pair(kernel_src, strlen(kernel_src))));
+  cl::Program program(context, cl::string(kernel_src));
   if (program.build(build_args) != CL_SUCCESS) {
     std::cout << "ERROR: OpenCL kernel failed to build" << std::endl;
     exit(1);
-  }
-  cl::Kernel k_mat_nn(program, "k_mat_nn");
-
-  if (verbose >= 2) {
-    std::string s;
-    device.getInfo(CL_DEVICE_NAME, &s);
-    std::cout << "Using device: " << s << std::endl;
   }
 
   // Declare target storage and copy A and B
@@ -110,23 +110,20 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
   auto d_b = cl::Buffer(context, begin(b), end(b), true);
   auto d_c = cl::Buffer(context, CL_MEM_READ_WRITE, sizeof(site)*c.size());
 
-  // make sure workgroup size is the kernel algorithm minimum
-  if (wgsize < THREADS_PER_SITE)
-    wgsize = THREADS_PER_SITE;
-  //
-  // set the global range
-  size_t total_wi = total_sites * THREADS_PER_SITE;
+  // Make the kernel and set the arguments
+  cl::Kernel k_mat_nn(program, "k_mat_nn");
+  k_mat_nn.setArg(0, d_a);
+  k_mat_nn.setArg(1, d_b);
+  k_mat_nn.setArg(2, d_c);
+  k_mat_nn.setArg(3, (int)total_sites);
 
+  size_t total_wi = total_sites * THREADS_PER_SITE;
+  if (wgsize == 0)  // check to make sure work group size is set
+    wgsize = THREADS_PER_SITE;
   if (verbose >= 1) {
     std::cout << "Setting number of work items " << total_wi << std::endl;
     std::cout << "Setting workgroup size to " << wgsize << std::endl;
   }
-
-  // set k_mat_nn arguments
-  k_mat_nn.setArg(0, d_a);
-  k_mat_nn.setArg(1, d_b);
-  k_mat_nn.setArg(2, d_c);
-  k_mat_nn.setArg(3, static_cast<cl_int>(total_sites));
 
   // benchmark loop
   auto tstart = Clock::now();
@@ -139,7 +136,7 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
   double ttotal = std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tstart).count();
 
   // copy data back from device
-  queue.enqueueReadBuffer(d_c, CL_TRUE, 0, c.size()*sizeof(site), c.data());
+  cl::copy(queue, d_c, begin(c), end(c));
 
   return (ttotal /= 1.0e6);
 }
