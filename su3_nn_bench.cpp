@@ -105,12 +105,12 @@ void make_lattice(site *s, size_t n, Complx val) {
 // Main
 int main(int argc, char **argv)
 {
-  int opt;
   size_t iterations = ITERATIONS;
   size_t ldim = LDIM;
-  size_t threads_per_group = 0;
-  int device = -1;   // Use a default selector
+  size_t threads_per_group = 128; // nominally works well across implementations
+  int device = -1;                // Let implementation choose the device
 
+  int opt;
   g_argc = argc;
   g_argv = argv;
   // parse command line for parameters
@@ -136,7 +136,7 @@ int main(int argc, char **argv)
       break;
     case 'h':
       fprintf(stderr, "Usage: %s [-i iterations] [-l lattice dimension] \
-[-t threads per workgroup] [-v verbosity level [0,1,2,3]] [-w warmups]\n", argv[0]);
+[-t threads per workgroup] [-d device] [-v verbosity level [0,1,2,3]] [-w warmups]\n", argv[0]);
       exit (1);
     }
   }
