@@ -3,7 +3,7 @@
 #include <unistd.h>
 
 #define THREADS_PER_SITE 36
-#define NUM_TEAMS 1536
+#define NUM_TEAMS 16000
 #ifndef USE_WORKAROUND
   #define USE_WORKAROUND 2
 #endif

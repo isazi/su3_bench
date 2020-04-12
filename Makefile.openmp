@@ -23,6 +23,7 @@ ifeq ($(VENDOR),nvidia)
     CC = clang++
     CFLAGS = -std=c++11 -ffast-math -O3 -Wno-ignored-attributes -Wno-deprecated-declarations
     CFLAGS += -fopenmp -fopenmp-targets=nvptx64-nvidia-cuda
+    DEFINES += -DMILC_COMPLEX
   endif
 else ifeq ($(VENDOR),intel)
   CC = icx
