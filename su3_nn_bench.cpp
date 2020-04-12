@@ -180,6 +180,7 @@ int main(int argc, char **argv)
   // Verification of the result
   // If too expensive, we can just verify the sum
   // but I'm paranoid, so I verify each element
+  double sum = 0.0;
   for (int i=0;i<total_sites;++i) for(int j=0;j<4;++j)  for(int k=0;k<3;++k)  for(int l=0;l<3;++l) {
         Complx cc = {0.0, 0.0};
         for(int m=0;m<3;m++) {
@@ -191,11 +192,25 @@ int main(int argc, char **argv)
         }
         
         #ifdef MILC_COMPLEX
+           sum += c[i].link[j].e[k][l].real;
            assert(almost_equal(c[i].link[j].e[k][l].real, cc.real, 1E-6));
            assert(almost_equal(c[i].link[j].e[k][l].imag, cc.imag, 1E-6));
         #else
-          assert(almost_equal(c[i].link[j].e[k][l], cc, 1E-6));
+           sum += std::real(c[i].link[j].e[k][l]);
+           assert(almost_equal(c[i].link[j].e[k][l], cc, 1E-6));
         #endif     
+  }
+
+  sum /= (double)total_sites;
+  // It is not possible to check for NaNs when the application is compiled with -fast-math
+  // Therefore we print out the calculated checksum as a manual check for the user.
+  // This is helpful when using LLVM/Clang-10.0 to compile the OpenMP target offload
+  // implementation without MILC_COMPLEX (i.e. using std::complex).
+  if (almost_equal(sum, 4.0*sizeof(su3_matrix)/(sizeof(Complx)), 1E-6)) {
+    printf("Checksum SUCCESS... though please be diligent and check the "
+	   "following value is not NaN: checksum=%.0lf\n", sum);
+  } else {
+    printf("Checksum FAILURE\n");
   }
 
   // check memory usage
