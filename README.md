@@ -2,7 +2,7 @@
 The purpose of this microbenchmark is to provide a means to explore different programming methodologies using a simple, but not trivial, mathematical kernel. The kernel is based on the mult_su3_nn() SU(3) matrix-matrix multiply routine in the MILC Lattice Quantum Chromodynamics(LQCD) code. Matrix-matrix (and matrix-vector) SU(3) operations are a fundamental building block of LQCD applications. Most LQCD applications use custom implementations of these kernels, and they are usually written in machine specific languages and/or  intrinsics. 
 
 ### Design
-The code is written in standard C and C++. The main driver routine is used for all programming model implementations, with programming model specific implementations self contained in respective C++ include files. Programming methods implemented to date include: OpenCL, OpenMP, OpenACC, SYCL, and Cuda.
+The code is written in standard C and C++. The main driver routine is used for all programming model implementations, with programming model specific implementations self contained in respective C++ include files. Programming methods implemented include: OpenCL, OpenMP, OpenACC, SYCL, CUDA and HIP.
 
 The code is the documentation. It's simple enough, so dive in.
 
