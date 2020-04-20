@@ -6,6 +6,9 @@
 #include <vector>
 #include <iostream>
 #include <string>
+#include <cassert>
+#include <cmath>
+#include <complex>
 #include <chrono>
 typedef std::chrono::system_clock Clock;
 
@@ -28,38 +31,34 @@ char **g_argv;
 
 #include "lattice.hpp"
 
-#ifdef USE_CUDA
-  #include <thrust/host_vector.h>
-  #include "mat_nn_cuda.hpp"
-#elif  USE_OPENMP
-  #include "mat_nn_openmp.hpp"
-#elif  USE_OPENACC
-  #include "mat_nn_openacc.hpp"
-#elif  USE_OPENCL
-  // OpenCL 1.2 doesn't support complex data types
-  #define MILC_COMPLEX
-  #include "mat_nn_opencl.hpp"
-#elif USE_SYCL
-  #include "mat_nn_sycl.hpp"
-#elif USE_DPCPP
-  #include "mat_nn_dpcpp.hpp"
-#elif USE_HIP
-  #include "mat_nn_hip.hpp"
-#else
-  #error Unknown programming model
-#endif
-
-#include <cassert>
-#include <cmath>
 template<class T>
 bool almost_equal(T x, T y, double tol)
 {
-#ifndef USE_CUDA
-    return std::abs( x - y ) < tol ;
-#else
-    return thrust::abs( x - y ) < tol ;
-#endif
+  if (std::isnan(x) || std::isnan(y))
+	  return (0);
+  return std::abs( x - y ) < tol ;
 }
+
+// std::isnan() lacks complex support, so need a complex template
+template<class T>
+bool almost_equal(std::complex<T> x, std::complex<T> y, double tol)
+{
+  if (std::isnan(x.real()) || std::isnan(x.imag())
+  ||  std::isnan(y.real()) || std::isnan(y.imag()) )
+	  return (0);
+  return std::abs( x - y ) < tol ;
+}
+
+#ifdef USE_CUDA
+template<class T>
+bool almost_equal(thrust::complex<T> x, thrust::complex<T> y, double tol)
+{
+  if (std::isnan(x.real()) || std::isnan(x.imag())
+  ||  std::isnan(y.real()) || std::isnan(y.imag()) )
+	  return (0);
+  return thrust::abs( x - y ) < tol ;
+}
+#endif
 
 #ifdef RANDOM_INIT
 #include <random>
@@ -101,6 +100,28 @@ void make_lattice(site *s, size_t n, Complx val) {
     }
   }
 }
+
+// Include the programming model specific function for su3_mat_nn()
+#ifdef USE_CUDA
+  #include <thrust/host_vector.h>
+  #include "mat_nn_cuda.hpp"
+#elif  USE_OPENMP
+  #include "mat_nn_openmp.hpp"
+#elif  USE_OPENACC
+  #include "mat_nn_openacc.hpp"
+#elif  USE_OPENCL
+  // OpenCL 1.2 doesn't support complex data types
+  #define MILC_COMPLEX
+  #include "mat_nn_opencl.hpp"
+#elif USE_SYCL
+  #include "mat_nn_sycl.hpp"
+#elif USE_DPCPP
+  #include "mat_nn_dpcpp.hpp"
+#elif USE_HIP
+  #include "mat_nn_hip.hpp"
+#else
+  #error Unknown programming model
+#endif
 
 // Main
 int main(int argc, char **argv)
@@ -178,39 +199,22 @@ int main(int argc, char **argv)
   fflush(stdout);
 
   // Verification of the result
-  // If too expensive, we can just verify the sum
-  // but I'm paranoid, so I verify each element
-  double sum = 0.0;
   for (int i=0;i<total_sites;++i) for(int j=0;j<4;++j)  for(int k=0;k<3;++k)  for(int l=0;l<3;++l) {
-        Complx cc = {0.0, 0.0};
-        for(int m=0;m<3;m++) {
-          #ifdef MILC_COMPLEX
-            CMULSUM( a[i].link[j].e[k][m], b[j].e[m][l], cc)
-          #else
-            cc += a[i].link[j].e[k][m] * b[j].e[m][l];
-          #endif
-        }
-        
-        #ifdef MILC_COMPLEX
-           sum += c[i].link[j].e[k][l].real;
-           assert(almost_equal(c[i].link[j].e[k][l].real, cc.real, 1E-6));
-           assert(almost_equal(c[i].link[j].e[k][l].imag, cc.imag, 1E-6));
-        #else
-           sum += std::real(c[i].link[j].e[k][l]);
-           assert(almost_equal(c[i].link[j].e[k][l], cc, 1E-6));
-        #endif     
-  }
+    Complx cc = {0.0, 0.0};
+    for(int m=0;m<3;m++) {
+      #ifdef MILC_COMPLEX
+        CMULSUM( a[i].link[j].e[k][m], b[j].e[m][l], cc)
+      #else
+        cc += a[i].link[j].e[k][m] * b[j].e[m][l];
+      #endif
+    }
 
-  sum /= (double)total_sites;
-  // It is not possible to check for NaNs when the application is compiled with -fast-math
-  // Therefore we print out the calculated checksum as a manual check for the user.
-  // This is helpful when using LLVM/Clang-10.0 to compile the OpenMP target offload
-  // implementation without MILC_COMPLEX (i.e. using std::complex).
-  if (almost_equal(sum, 4.0*sizeof(su3_matrix)/(sizeof(Complx)), 1E-6)) {
-    printf("Checksum SUCCESS... though please be diligent and check the "
-	   "following value is not NaN: checksum=%.0lf\n", sum);
-  } else {
-    printf("Checksum FAILURE\n");
+    #ifdef MILC_COMPLEX
+       assert(almost_equal(c[i].link[j].e[k][l].real, cc.real, 1E-6));
+       assert(almost_equal(c[i].link[j].e[k][l].imag, cc.imag, 1E-6));
+    #else
+       assert(almost_equal(c[i].link[j].e[k][l], cc, 1E-6));
+    #endif
   }
 
   // check memory usage
