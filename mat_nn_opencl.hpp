@@ -93,7 +93,7 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
   sprintf(build_args, "-I. -DPRECISION=%d -DUSE_OPENCL", PRECISION);
   if (verbose >= 2)
     std::cout << "Building Kernel with: " << build_args << std::endl;
-  cl::Program program(context, cl::string(kernel_src));
+  cl::Program program(context, std::string(kernel_src));
   if (program.build(build_args) != CL_SUCCESS) {
     std::cout << "ERROR: OpenCL kernel failed to build" << std::endl;
     exit(1);
