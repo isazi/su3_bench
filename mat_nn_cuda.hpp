@@ -95,8 +95,10 @@ double su3_mat_nn(thrust::host_vector<site> &a, thrust::host_vector<su3_matrix> 
   // benchmark loop
   auto tstart = Clock::now();
   for (int iters=0; iters<iterations+warmups; ++iters) {
-    if (iters == warmups)
+    if (iters == warmups) {
+      cudaDeviceSynchronize();
       tstart = Clock::now();
+	  }
     k_mat_nn<<<blocksPerGrid, threadsPerBlock>>>(d_a, d_b, d_c, total_sites);
   }
   cudaDeviceSynchronize();

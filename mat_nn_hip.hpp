@@ -95,8 +95,10 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
   // benchmark loop
   auto tstart = Clock::now();
   for (int iters=0; iters<iterations+warmups; ++iters) {
-    if (iters == warmups)
+    if (iters == warmups) {
+      hipDeviceSynchronize();
       tstart = Clock::now();
+	  }
     hipLaunchKernelGGL(k_mat_nn, dim3(blocksPerGrid), dim3(threadsPerBlock), 0, 0, d_a, d_b, d_c, total_sites);
   }
   hipDeviceSynchronize();
