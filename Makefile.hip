@@ -1,7 +1,7 @@
 #
 HIP_PLATFORM=$(shell hipconfig --compiler)
 ifeq (${HIP_PLATFORM}, nvcc)
-	HIPCC_FLAGS = -gencode=arch=compute_70,code=sm_70 
+	HIPCC_FLAGS = -gencode=arch=compute_70,code=sm_70 -DUSE_CUDA
 endif
 ifeq (${HIP_PLATFORM}, hcc)
 	HIPCC_FLAGS = -Wno-deprecated-register
