@@ -7,18 +7,19 @@ endif
 ifndef COMPILER
   COMPILER = clang
 endif
-# USE_WORKAROUND = 0 | 1 | 2
+# USE_VERSION = 0 | 1 | 2 | 3
 ifndef VERSION
-  VERSION = 2
+  VERSION = 3
 endif
 
-DEFINES = -DUSE_OPENMP -DUSE_WORKAROUND=$(VERSION)
+DEFINES = -DUSE_OPENMP -DUSE_VERSION=$(VERSION)
 DEPENDS = su3.hpp lattice.hpp mat_nn_openmp.hpp
 
 ifeq ($(VENDOR),nvidia)
   ifeq ($(COMPILER),pgi)
     CC = pgc++
-    CFLAGS = -std=c++11 -fast -mp=tesla:cc70 --no_exceptions
+    #CFLAGS = -std=c++11 -fast -mp=tesla:cc70
+    CFLAGS = -std=c++11 -fast -mp=gpu:cc70
   else
     CC = clang++
     CFLAGS = -std=c++11 -O3 -Wno-ignored-attributes -Wno-deprecated-declarations

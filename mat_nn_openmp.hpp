@@ -3,9 +3,9 @@
 #include <unistd.h>
 
 #define THREADS_PER_SITE 36
-#define NUM_TEAMS 16000
-#ifndef USE_WORKAROUND
-  #define USE_WORKAROUND 2
+#define NUM_TEAMS 1600
+#ifndef USE_VERSION
+  #define USE_VERSION 2
 #endif
 
 double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<site> &c, 
@@ -41,7 +41,47 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
 
   // benchmark loop
   auto tstart = Clock::now();
-#if USE_WORKAROUND == 1
+#if USE_VERSION == 0
+  // Baseline implementation
+	// Original intent is to have teams process whole sites, 
+	//   hence sites are distributed across the teams
+	// However, for the Clang 10.0 OpenMP compiler this has issues in that memory gets
+	//   flushed after each parallel region causing excessive global memory traffic
+  // See USE_VERSION
+  if (verbose >= 1) {
+    std::cout << "Number of teams = " << num_teams << std::endl;
+    std::cout << "Threads per team = " << threads_per_team << std::endl;
+  }
+
+  for (int iters=0; iters<iterations+warmups; ++iters) {
+    if (iters == warmups)
+      tstart = Clock::now();
+    #pragma omp target teams distribute num_teams(num_teams) thread_limit(threads_per_team)
+    for(int i=0;i<total_sites;++i) {
+      #pragma omp parallel for collapse(3)
+      for (int j=0; j<4; ++j) {
+        for(int k=0;k<3;k++) {
+          for(int l=0;l<3;l++){
+            Complx cc = {0.0, 0.0};
+#ifndef MILC_COMPLEX
+            for(int m=0;m<3;m++) {
+               cc += d_a[i].link[j].e[k][m] * d_b[j].e[m][l];
+            }
+            d_c[i].link[j].e[k][l] = cc;
+#else
+            for(int m=0;m<3;m++) {
+               CMULSUM(d_a[i].link[j].e[k][m], d_b[j].e[m][l], cc);
+            }
+            d_c[i].link[j].e[k][l].real = cc.real;
+            d_c[i].link[j].e[k][l].imag = cc.imag;
+#endif
+          }
+        }
+      }
+    }
+  }
+
+#elif USE_VERSION == 1
   // This version improves performance over the baseline
   // Contributed by Chris Daley, NERSC
   if (verbose >= 1) {
@@ -90,7 +130,7 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
     }  // end of teams region
   }
 
-#elif USE_WORKAROUND == 2
+#elif USE_VERSION == 2
   // This code improves performance over above baseline
   // Similar to Cuda and OpenCL work item approach
   // Initial contribution by Xinmin Tian, Intel
@@ -130,16 +170,19 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
     }
   }
 
-#else
+#else // VERSION == 3
   // Baseline implementation
-  // Uses the purest intent of OpenMP, but has performance issues
-  // See USE_WORLAROUND
+  // Uses the purest intent of OpenMP
+  if (verbose >= 1) {
+    std::cout << "Number of teams = " << num_teams << std::endl;
+    std::cout << "Threads per team = " << threads_per_team << std::endl;
+  }
+
   for (int iters=0; iters<iterations+warmups; ++iters) {
     if (iters == warmups)
       tstart = Clock::now();
-    #pragma omp target teams distribute num_teams(num_teams) thread_limit(threads_per_team)
+    #pragma omp target teams distribute parallel for collapse(4) num_teams(num_teams) thread_limit(threads_per_team)
     for(int i=0;i<total_sites;++i) {
-      #pragma omp parallel for collapse(3)
       for (int j=0; j<4; ++j) {
         for(int k=0;k<3;k++) {
           for(int l=0;l<3;l++){
@@ -161,12 +204,13 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
       }
     }
   }
+
 #endif
 
   ttotal = std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tstart).count();
   } // end of OpenMP block, C gets moved back to the host
 
-  // It is not possible to check for NaNs when the application is compiled with -fast-math
+  // It is not possible to check for NaNs when the application is compiled with -ffast-math
   // Therefore we print out the calculated checksum as a manual check for the user.
   // This is helpful when using LLVM/Clang-10.0 to compile the OpenMP target offload
   // implementation without MILC_COMPLEX (i.e. using std::complex).
