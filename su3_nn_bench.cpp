@@ -135,7 +135,11 @@ int main(int argc, char **argv)
   g_argc = argc;
   g_argv = argv;
   // parse command line for parameters
-  while ((opt=getopt(argc, argv, ":hi:l:t:v:d:w:")) != -1) {
+	// the options list must include flags used by the various
+  //   su3_mat_nn() implementations internally,
+  //   as getopt rearrages the order of arguments and
+  //   can screw things up for unknown options
+  while ((opt=getopt(argc, argv, ":hi:l:t:v:d:w:n:")) != -1) {
     switch (opt) {
     case 'i':
       iterations = atoi(optarg);
