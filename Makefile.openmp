@@ -3,7 +3,7 @@
 ifndef VENDOR
   VENDOR = nvidia
 endif
-# Compiler can be clang | pgi
+# Compiler can be clang | pgi | cray
 ifndef COMPILER
   COMPILER = clang
 endif
@@ -18,11 +18,14 @@ DEPENDS = su3.hpp lattice.hpp mat_nn_openmp.hpp
 ifeq ($(VENDOR),nvidia)
   ifeq ($(COMPILER),pgi)
     CC = pgc++
-    #CFLAGS = -std=c++11 -fast -mp=tesla:cc70
     CFLAGS = -std=c++11 -fast -mp=gpu:cc70
+  else ifeq ($(COMPILER),cray) # Cray 9.x or later
+    CC = CC
+    CFLAGS = -std=c++11 -O3 -fopenmp
+    DEFINES += -DMILC_COMPLEX
   else
     CC = clang++
-    CFLAGS = -std=c++11 -O3 -Wno-ignored-attributes -Wno-deprecated-declarations
+    CFLAGS = -std=c++11 -O3
     CFLAGS += -fopenmp -fopenmp-targets=nvptx64-nvidia-cuda
     DEFINES += -DMILC_COMPLEX
   endif
@@ -32,7 +35,7 @@ else ifeq ($(VENDOR),intel)
   DEFINES += -DMILC_COMPLEX
 else ifeq ($(VENDOR),amd)
   CC = clang++
-  CFLAGS = -std=c++14 -O3 -Wno-ignored-attributes -Wno-deprecated-declarations
+  CFLAGS = -std=c++14 -O3
   CFLAGS += -fopenmp -fopenmp-targets=amdgcn-amd-amdhsa -Xopenmp-target=amdgcn-amd-amdhsa -march=gfx906
   DEFINES += -DMILC_COMPLEX
 endif 
