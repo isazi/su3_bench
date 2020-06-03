@@ -4,17 +4,18 @@
 
 #ifndef USE_CUDA
   #include <complex>
-  typedef struct { std::complex<float> e[3][3]; } fsu3_matrix;
-  typedef struct { std::complex<float> c[3]; } fsu3_vector;
-  typedef struct { std::complex<double> e[3][3]; } dsu3_matrix;
-  typedef struct { std::complex<double> c[3]; } dsu3_vector;
+  struct fsu3_matrix { std::complex<float> e[3][3]; } ;
+  struct fsu3_vector { std::complex<float> c[3]; } ;
+  struct dsu3_matrix { std::complex<double> e[3][3]; } ;
+  struct dsu3_vector { std::complex<double> c[3]; } ;
 #else
   #include <thrust/complex.h>
-  typedef struct { thrust::complex<float> e[3][3]; } fsu3_matrix;
-  typedef struct { thrust::complex<float> c[3]; } fsu3_vector;
-  typedef struct { thrust::complex<double> e[3][3]; } dsu3_matrix;
-  typedef struct { thrust::complex<double> c[3]; } dsu3_vector;
+  struct fsu3_matrix { thrust::complex<float> e[3][3]; } ;
+  struct fsu3_vector { thrust::complex<float> c[3]; } ;
+  struct dsu3_matrix { thrust::complex<double> e[3][3]; } ;
+  struct dsu3_vector { thrust::complex<double> c[3]; } ;
 #endif
+
 
 #if (PRECISION==1)
   #define su3_matrix    fsu3_matrix
