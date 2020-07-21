@@ -1,7 +1,7 @@
 # Codeplay's ComputeCpp SYCL compiler
 # Target can be spirv64 | ptx64
 #   spirv64 uses the POCL (or other SPIR-V compaible) OpenCL library
-#   ptx64 targets the Nvidia drvier directly
+#   ptx64 targets the Nvidia driver directly
 ifndef TARGET
   TARGET = spirv64
 endif
@@ -12,7 +12,7 @@ DEFINES = -DUSE_SYCL
 DEPENDS = su3.hpp lattice.hpp mat_nn_sycl.hpp
 
 ifeq ($(TARGET),ptx64)
-  CFLAGS += -I$(CUDA_ROOT)/include
+  CFLAGS += -I$(CUDA_ROOT)/include -L$(CUDA_ROOT)/lib64
 endif
 
 # 32-bit float
