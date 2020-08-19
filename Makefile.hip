@@ -2,9 +2,9 @@
 HIP_PLATFORM=$(shell hipconfig --compiler)
 ifeq (${HIP_PLATFORM}, nvcc)
 	HIPCC_FLAGS = -gencode=arch=compute_70,code=sm_70 -DUSE_CUDA
-endif
-ifeq (${HIP_PLATFORM}, hcc)
-	HIPCC_FLAGS = -Wno-deprecated-register
+else
+	# std::complex no longer works with hipcc 3.6, so use MILC_COMPLEX
+	HIPCC_FLAGS = -Wno-deprecated-register -DMILC_COMPLEX
 endif
 
 CC = hipcc $(HIPCC_FLAGS)
