@@ -17,8 +17,8 @@ DEPENDS = su3.hpp lattice.hpp mat_nn_openmp.hpp
 
 ifeq ($(VENDOR),nvidia)
   ifeq ($(COMPILER),pgi)
-    CC = pgc++
-    CFLAGS = -std=c++11 -fast -mp=gpu:cc70
+    CC = nvc++
+    CFLAGS = -std=c++11 -fast -mp=gpu -gpu=cc70
   else ifeq ($(COMPILER),cray) # Cray 9.x or later
     CC = CC
     CFLAGS = -std=c++11 -O3 -fopenmp
