@@ -5,7 +5,7 @@ ARCH = nvidia
 ifeq ($(ARCH),nvidia)
   CC = clang++
   CFLAGS = -fsycl -fsycl-targets=nvptx64-nvidia-cuda-sycldevice -Xsycl-target-backend '--cuda-gpu-arch=sm_70'
-  INCLUDES = -DUSE_SYCL
+  INCLUDES = -DUSE_DPCPP
   DEPENDS = mat_nn_sycl.hpp
 else  # intel
   CC = dpcpp
