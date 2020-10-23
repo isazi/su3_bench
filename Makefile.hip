@@ -1,7 +1,7 @@
 #
 HIP_PLATFORM=$(shell hipconfig --platform)
 ifeq (${HIP_PLATFORM}, nvcc)
-	HIPCC_FLAGS = -gencode=arch=compute_70,code=sm_70 -DUSE_CUDA
+	HIPCC_FLAGS = -gencode arch=compute_70,code=sm_70 -DUSE_CUDA
 else
 	# std::complex no longer works with hipcc 3.6, so use MILC_COMPLEX
 	HIPCC_FLAGS = -DMILC_COMPLEX
