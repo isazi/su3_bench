@@ -3,9 +3,9 @@
 CC = nvcc -ccbin g++ -m64 --x cu
 CFLAGS = --std c++14
 # ARCH = V100 | A100
-ifeq ($(ARCH),A100)
+ifeq ($(ARCH),V100)
   CFLAGS += -gencode arch=compute_70,code=sm_70
-else ifeq ($(ARCH),V100)
+else ifeq ($(ARCH),A100)
   CFLAGS += -gencode arch=compute_80,code=sm_80
 else
   CFLAGS += -gencode arch=compute_70,code=sm_70 -gencode arch=compute_80,code=sm_80
