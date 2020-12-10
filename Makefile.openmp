@@ -8,11 +8,11 @@ ifndef COMPILER
   COMPILER = clang
 endif
 # USE_VERSION = 0 | 1 | 2 | 3
-ifndef VERSION
-  VERSION = 3
+ifdef VERSION
+  DEFINES = -DUSE_VERSION=$(VERSION)
 endif
 
-DEFINES = -DUSE_OPENMP -DUSE_VERSION=$(VERSION)
+DEFINES += -DUSE_OPENMP
 DEPENDS = su3.hpp lattice.hpp mat_nn_openmp.hpp
 
 ifeq ($(VENDOR),nvidia)
