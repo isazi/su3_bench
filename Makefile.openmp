@@ -16,6 +16,7 @@ DEFINES = -DUSE_OPENMP -DUSE_VERSION=$(VERSION)
 DEPENDS = su3.hpp lattice.hpp mat_nn_openmp.hpp
 
 ifeq ($(VENDOR),nvidia)
+  # ARCH = V100 | A100
   ifeq ($(COMPILER),pgi)
     CC = nvc++
     CFLAGS = -std=c++11 -fast -mp=gpu -gpu=cc70
@@ -27,6 +28,9 @@ ifeq ($(VENDOR),nvidia)
     CC = clang++
     CFLAGS = -std=c++11 -O3
     CFLAGS += -fopenmp -fopenmp-targets=nvptx64-nvidia-cuda
+    ifeq ($(ARCH),A100)
+      CFLAGS += -Xopenmp-target=nvptx64-nvidia-cuda -march=sm_80
+    endif
     DEFINES += -DMILC_COMPLEX
   endif
 else ifeq ($(VENDOR),intel)
