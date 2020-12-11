@@ -1,7 +1,12 @@
 #
 HIP_PLATFORM=$(shell hipconfig --platform)
 ifeq (${HIP_PLATFORM}, nvcc)
-	HIPCC_FLAGS = -gencode arch=compute_70,code=sm_70
+  # ARCH = V100 | A100
+  ifeq ($(ARCH),A100)
+    HIPCC_FLAGS = -gencode arch=compute_80,code=sm_80
+  else
+    HIPCC_FLAGS = -gencode arch=compute_70,code=sm_70
+  endif
 endif
 
 # USE MILC Complex data types
