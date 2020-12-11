@@ -49,17 +49,6 @@ bool almost_equal(std::complex<T> x, std::complex<T> y, double tol)
   return std::abs( x - y ) < tol ;
 }
 
-#ifdef USE_CUDA
-template<class T>
-bool almost_equal(thrust::complex<T> x, thrust::complex<T> y, double tol)
-{
-  if (std::isnan(x.real()) || std::isnan(x.imag())
-  ||  std::isnan(y.real()) || std::isnan(y.imag()) )
-	  return (0);
-  return thrust::abs( x - y ) < tol ;
-}
-#endif
-
 #ifdef RANDOM_INIT
 #include <random>
 std::random_device rd;  //Will be used to obtain a seed for the random number engine
@@ -103,7 +92,6 @@ void make_lattice(site *s, size_t n, Complx val) {
 
 // Include the programming model specific function for su3_mat_nn()
 #ifdef USE_CUDA
-  #include <thrust/host_vector.h>
   #include "mat_nn_cuda.hpp"
 #elif  USE_OPENMP
   #include "mat_nn_openmp.hpp"
@@ -168,15 +156,9 @@ int main(int argc, char **argv)
 
   // allocate and initialize the working lattices and B su3 matrices
   size_t total_sites = ldim*ldim*ldim*ldim;
-#ifndef USE_CUDA
   std::vector<site> a(total_sites);
   std::vector<su3_matrix> b(4);
   std::vector<site> c(total_sites);
-#else
-  thrust::host_vector<site> a(total_sites);
-  thrust::host_vector<su3_matrix> b(4);
-  thrust::host_vector<site> c(total_sites);
-#endif
 
   // initialize the lattices
   make_lattice(a.data(), ldim, Complx{1.0,0.0});

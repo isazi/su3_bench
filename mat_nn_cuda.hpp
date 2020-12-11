@@ -9,6 +9,18 @@
 
 #define THREADS_PER_SITE 36
 
+// validation function used by main() program
+#if defined(USE_CUDA) && !defined(MILC_COMPLEX)
+template<class T>
+bool almost_equal(thrust::complex<T> x, thrust::complex<T> y, double tol)
+{
+  if (std::isnan(x.real()) || std::isnan(x.imag())
+  ||  std::isnan(y.real()) || std::isnan(y.imag()) )
+	  return (0);
+  return thrust::abs( x - y ) < tol ;
+}
+#endif
+
 //*******************  m_mat_nn.c  (in su3.a) ****************************
 //  void mult_su3_nn( su3_matrix *a,*b,*c )
 //  matrix multiply, no adjoints 
@@ -26,14 +38,18 @@ __global__ void k_mat_nn(
     int j = (myThread%36)/9;
     int k = (myThread%9)/3;
     int l = myThread%3;
-    Complx cc;
+    Complx cc = {0.0, 0.0};
     for (int m=0;m<3;m++)
+#ifdef MILC_COMPLEX
+      CMULSUM(a[mySite].link[j].e[k][m], b[j].e[m][l], cc);
+#else
       cc += a[mySite].link[j].e[k][m] * b[j].e[m][l];
+#endif
     c[mySite].link[j].e[k][l] = cc;
   }
 }
 
-double su3_mat_nn(thrust::host_vector<site> &a, thrust::host_vector<su3_matrix> &b, thrust::host_vector<site> &c, 
+double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<site> &c, 
               size_t total_sites, size_t iterations, size_t threadsPerBlock, int use_device)
 {
   int blocksPerGrid;
