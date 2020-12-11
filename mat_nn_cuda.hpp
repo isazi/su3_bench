@@ -9,18 +9,6 @@
 
 #define THREADS_PER_SITE 36
 
-// validation function used by main() program
-#if defined(USE_CUDA) && !defined(MILC_COMPLEX)
-template<class T>
-bool almost_equal(thrust::complex<T> x, thrust::complex<T> y, double tol)
-{
-  if (std::isnan(x.real()) || std::isnan(x.imag())
-  ||  std::isnan(y.real()) || std::isnan(y.imag()) )
-	  return (0);
-  return thrust::abs( x - y ) < tol ;
-}
-#endif
-
 //*******************  m_mat_nn.c  (in su3.a) ****************************
 //  void mult_su3_nn( su3_matrix *a,*b,*c )
 //  matrix multiply, no adjoints 

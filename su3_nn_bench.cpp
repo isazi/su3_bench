@@ -31,6 +31,7 @@ char **g_argv;
 
 #include "lattice.hpp"
 
+// validation function used by main()
 template<class T>
 bool almost_equal(T x, T y, double tol)
 {
@@ -48,6 +49,18 @@ bool almost_equal(std::complex<T> x, std::complex<T> y, double tol)
 	  return (0);
   return std::abs( x - y ) < tol ;
 }
+
+// Thrust version
+#ifdef USE_THRUST
+template<class T>
+bool almost_equal(thrust::complex<T> x, thrust::complex<T> y, double tol)
+{
+  if (std::isnan(x.real()) || std::isnan(x.imag())
+  ||  std::isnan(y.real()) || std::isnan(y.imag()) )
+	  return (0);
+  return thrust::abs( x - y ) < tol ;
+}
+#endif
 
 #ifdef RANDOM_INIT
 #include <random>
