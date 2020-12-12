@@ -170,29 +170,47 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
     }
   }
 
-#else // VERSION == 3
+#else // VERSION == 3 || VERSION == 4
   // Baseline implementation
   // Uses the purest intent of OpenMP
+  // Version 3 is a prescriptive approach using OpenMP-4.5 constructs
+  // Version 4 is a descriptive approach using the OpenMP-5.0 loop construct and
+  // giving the compiler the freedom to choose the number of teams and threads per team
   if (verbose >= 1) {
+#if USE_VERSION == 3
     std::cout << "Number of teams = " << num_teams << std::endl;
     std::cout << "Threads per team = " << threads_per_team << std::endl;
+#elif USE_VERSION == 4
+    std::cout << "Number of teams = " << "Compiler selected" << std::endl;
+    std::cout << "Threads per team = " << "Compiler selected" << std::endl;
+#endif
   }
 
   for (int iters=0; iters<iterations+warmups; ++iters) {
     if (iters == warmups)
       tstart = Clock::now();
+#if USE_VERSION == 3
     #pragma omp target teams distribute parallel for collapse(4) num_teams(num_teams) thread_limit(threads_per_team)
+#elif USE_VERSION == 4
+    #pragma omp target teams loop collapse(4)
+#endif
     for(int i=0;i<total_sites;++i) {
       for (int j=0; j<4; ++j) {
         for(int k=0;k<3;k++) {
           for(int l=0;l<3;l++){
             Complx cc = {0.0, 0.0};
 #ifndef MILC_COMPLEX
+#if USE_VERSION == 4
+            #pragma omp loop bind(thread)
+#endif
             for(int m=0;m<3;m++) {
                cc += d_a[i].link[j].e[k][m] * d_b[j].e[m][l];
             }
             d_c[i].link[j].e[k][l] = cc;
 #else
+#if USE_VERSION == 4
+            #pragma omp loop bind(thread)
+#endif
             for(int m=0;m<3;m++) {
                CMULSUM(d_a[i].link[j].e[k][m], d_b[j].e[m][l], cc);
             }
