@@ -1,6 +1,6 @@
 #
 CC = pgc++ -acc -ta=tesla:fastmath,cc70 # -Minfo=accel
-CFLAGS = -std=c++14 -O3
+CFLAGS = -O3
 INCLUDES = -DUSE_OPENACC
 DEPENDS = su3.hpp lattice.hpp mat_nn_openacc.hpp
 
