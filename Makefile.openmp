@@ -19,14 +19,14 @@ ifeq ($(VENDOR),nvidia)
   # ARCH = V100 | A100
   ifeq ($(COMPILER),pgi)
     CC = nvc++
-    CFLAGS = -std=c++11 -fast -mp=gpu -gpu=cc70
+    CFLAGS = -fast -mp=gpu -gpu=cc70
   else ifeq ($(COMPILER),cray) # Cray 9.x or later
     CC = CC
-    CFLAGS = -std=c++11 -O3 -fopenmp
+    CFLAGS = -O3 -fopenmp
     DEFINES += -DMILC_COMPLEX
   else
     CC = clang++
-    CFLAGS = -std=c++11 -O3
+    CFLAGS = -O3
     CFLAGS += -fopenmp -fopenmp-targets=nvptx64-nvidia-cuda
     ifeq ($(ARCH),A100)
       CFLAGS += -Xopenmp-target=nvptx64-nvidia-cuda -march=sm_80
@@ -39,7 +39,7 @@ else ifeq ($(VENDOR),intel)
   DEFINES += -DMILC_COMPLEX
 else ifeq ($(VENDOR),amd)
   CC = clang++
-  CFLAGS = -std=c++14 -O3
+  CFLAGS = -O3
   CFLAGS += -fopenmp -fopenmp-targets=amdgcn-amd-amdhsa -Xopenmp-target=amdgcn-amd-amdhsa -march=gfx906
   DEFINES += -DMILC_COMPLEX
 endif 

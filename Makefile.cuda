@@ -1,7 +1,7 @@
 #
 # depends on a Cuda module being loaded
 CC = nvcc -ccbin g++ -m64 --x cu
-CFLAGS = --std c++14
+CFLAGS = -O3
 # ARCH = V100 | A100
 ifeq ($(ARCH),A100)
   CFLAGS += -gencode arch=compute_80,code=sm_80

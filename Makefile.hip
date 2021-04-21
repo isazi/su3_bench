@@ -7,13 +7,20 @@ ifeq (${HIP_PLATFORM}, nvcc)
   else
     HIPCC_FLAGS = -gencode arch=compute_70,code=sm_70
   endif
+else
+  # ARCH = MI60 | MI100
+  ifeq ($(ARCH),MI100)
+    HIPCC_FLAGS = --offload-arch=gfx908
+  else
+    HIPCC_FLAGS = --offload-arch=gfx906
+  endif
 endif
 
 # USE MILC Complex data types
 #HIPCC_FLAGS += -DMILC_COMPLEX
 
 CC = hipcc
-CFLAGS = --std c++14 $(HIPCC_FLAGS) -DUSE_HIP
+CFLAGS = -O3 $(HIPCC_FLAGS) -DUSE_HIP
 DEPENDS = su3.hpp lattice.hpp mat_nn_hip.hpp
 
 bench_f32_hip.exe: su3_nn_bench.cpp $(DEPENDS)
