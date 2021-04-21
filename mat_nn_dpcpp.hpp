@@ -62,17 +62,18 @@ double su3_mat_nn(const std::vector<site> &a, const std::vector<su3_matrix> &b, 
   std::cout << std::flush;
 
   // allocate device memory
-  site*       d_a = (site*)       malloc_shared(total_sites * sizeof(site), queue);
-  su3_matrix* d_b = (su3_matrix*) malloc_shared(4 * sizeof(su3_matrix), queue);
-  site*       d_c = (site*)       malloc_shared(total_sites * sizeof(site), queue);
+  site*       d_a = (site*)       malloc_device(total_sites * sizeof(site), queue);
+  su3_matrix* d_b = (su3_matrix*) malloc_device(4 * sizeof(su3_matrix), queue);
+  site*       d_c = (site*)       malloc_device(total_sites * sizeof(site), queue);
   if (d_a == NULL || d_b == NULL || d_c == NULL) {
     std::cout << "Unable to allocate device memory " << std::endl;
     exit(1);
   }
 
   // Move host side memory to device allocated buffers
-  memcpy(d_a, a.data(), a.size() * sizeof(site));
-  memcpy(d_b, b.data(), b.size() * sizeof(su3_matrix));
+  queue.memcpy(d_a, a.data(), a.size() * sizeof(site));
+  queue.memcpy(d_b, b.data(), b.size() * sizeof(su3_matrix));
+  queue.wait();
 
   // benchmark loop
   auto tstart = Clock::now();
@@ -113,7 +114,12 @@ double su3_mat_nn(const std::vector<site> &a, const std::vector<su3_matrix> &b, 
   double ttotal = std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tstart).count();
 
   // Move the result back to the host side vector
-  memcpy(c.data(), d_c, c.size() * sizeof(site));
+  queue.memcpy(c.data(), d_c, c.size() * sizeof(site));
+  queue.wait();
+
+  free(d_a, queue);
+  free(d_b, queue);
+  free(d_c, queue);
 
   return (ttotal /= 1.0e6);
 } // end of SYCL block
