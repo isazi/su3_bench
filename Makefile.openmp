@@ -7,7 +7,7 @@ endif
 ifndef COMPILER
   COMPILER = clang
 endif
-# USE_VERSION = 0 | 1 | 2 | 3
+# USE_VERSION = 0 | 1 | 2 | 3 | 4
 ifdef VERSION
   DEFINES = -DUSE_VERSION=$(VERSION)
 endif
@@ -22,7 +22,7 @@ ifeq ($(VENDOR),nvidia)
     CFLAGS = -fast -mp=gpu -gpu=cc70
   else ifeq ($(COMPILER),cray) # Cray 9.x or later
     CC = CC
-    CFLAGS = -O3 -fopenmp
+    CFLAGS = -O3 -fopenmp -fopenmp-targets=nvptx64 -Xopenmp-target=nvptx64 -march=sm_70
     DEFINES += -DMILC_COMPLEX
   else
     CC = clang++
