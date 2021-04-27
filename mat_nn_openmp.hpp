@@ -251,8 +251,9 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
   }
   sum /= (double)total_sites;
   if (almost_equal(sum, 4.0*sizeof(su3_matrix)/(sizeof(Complx)), 1E-6)) {
-    printf("Checksum SUCCESS... though please be diligent and check the "
-    "following value is not NaN: checksum=%.0lf\n", sum);
+    if (verbose > 0)
+      printf("Checksum SUCCESS... though please be diligent and check the "
+      "following value is not NaN: checksum=%.0lf\n", sum);
   } else {
     printf("Checksum FAILURE\n");
   }
