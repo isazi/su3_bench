@@ -11,6 +11,9 @@
 #include <complex>
 #include <chrono>
 typedef std::chrono::system_clock Clock;
+#ifdef USE_OPENMP
+  #include <omp.h>
+#endif
 
 #ifndef ITERATIONS
 #  define ITERATIONS 100
@@ -85,21 +88,26 @@ void init_link(su3_matrix *s, Complx val) {
 
 // initializes a lattice site 
 void make_lattice(site *s, size_t n, Complx val) {
-  int nx=n;
-  int ny=n;
-  int nz=n;
-  int nt=n;
-  for(int t=0;t<nt;t++) {
-    int i=t*nz*ny*nx;
-    for(int z=0;z<nz;z++)for(int y=0;y<ny;y++)for(int x=0;x<nx;x++,i++){
-      s[i].x=x; s[i].y=y; s[i].z=z; s[i].t=t;
-      s[i].index = x+nx*(y+ny*(z+nz*t));
-      if( (x+y+z+t)%2 == 0)
-        s[i].parity=EVEN;
-      else
-        s[i].parity=ODD;
-      init_link(&s[i].link[0], val);
-    }
+  int nx = n;
+  int ny = n;
+  int nz = n;
+  int nt = n;
+#ifdef USE_OPENMP
+  // For NUMA reasons, use same pragma construct as OpenMP version
+  #pragma omp parallel for schedule(static)
+#endif
+  for(int i=0; i<nt*nz*ny*nx; i++) {
+    int x = i % nx;
+    int y = (i/nx) % ny;
+    int z = (i/(nx*ny)) % nz;
+    int t = (i/(nx*ny*nz)) % nt;
+    s[i].x=x; s[i].y=y; s[i].z=z; s[i].t=t;
+    s[i].index = i;
+    if( (x+y+z+t)%2 == 0)
+      s[i].parity=EVEN;
+    else
+      s[i].parity=ODD;
+    init_link(&s[i].link[0], val);
   }
 }
 
@@ -180,8 +188,6 @@ int main(int argc, char **argv)
   if (verbose >= 1) {
     printf("Number of sites = %zu^4\n", ldim);
     printf("Executing %zu iterations with %zu warmups\n", iterations, warmups);
-    if (threads_per_group != 0)
-      printf("Threads per group = %zu\n", threads_per_group);
   }
 
   // benchmark call

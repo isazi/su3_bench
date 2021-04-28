@@ -178,8 +178,12 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
   // giving the compiler the freedom to choose the number of teams and threads per team
   if (verbose >= 1) {
 #if USE_VERSION == 3
+  #ifdef NOTARGET
+    std::cout << "Number of threads = " << omp_get_max_threads() << std::endl;
+  #else
     std::cout << "Number of teams = " << num_teams << std::endl;
     std::cout << "Threads per team = " << threads_per_team << std::endl;
+  #endif
 #elif USE_VERSION == 4
     std::cout << "Number of teams = " << "Compiler selected" << std::endl;
     std::cout << "Threads per team = " << "Compiler selected" << std::endl;
@@ -190,7 +194,11 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
     if (iters == warmups)
       tstart = Clock::now();
 #if USE_VERSION == 3
+  #ifdef NOTARGET
+    #pragma omp parallel for schedule(static)
+  #else
     #pragma omp target teams distribute parallel for collapse(4) num_teams(num_teams) thread_limit(threads_per_team)
+  #endif
 #elif USE_VERSION == 4
     #pragma omp target teams loop collapse(4)
 #endif

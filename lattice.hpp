@@ -15,16 +15,18 @@
 #define ODD  0x01
 
 // The lattice is an array of sites
-typedef struct {
+typedef struct Site {
 	su3_matrix link[4];  // the fundamental gauge field
 	int x,y,z,t;         // coordinates of this site
 	int index;           // my index in the array
 	char parity;         // is it even or odd?
 #if (PRECISION==1)
-        int pad[2];          // pad out to 64 byte alignment
+        int pad[2];    // pad out to 64 byte alignment
 #else
-        int pad[10];         // pad out to 64 byte alignment
+        int pad[10];    // pad out to 64 byte alignment
 #endif
+  Site(){}              // Use a no-op constructor to avoid NUMA initialization issues
+                        // The application is responsible for initialization
 } site __attribute__ ((aligned));
 
 #endif // _LATTICE_HPP
