@@ -8,7 +8,7 @@ endif
 
 
 DEFINES = -DUSE_OPENMP_CPU -DUSE_VERSION=$(VERSION)
-DEPENDS = su3.hpp lattice.hpp mat_nn_openmp_cpu.hpp
+DEPENDS = su3.hpp lattice.hpp mat_nn_openmp2.hpp
 
 ifeq ($(COMPILER),icpc)
   CC = icpc

@@ -113,7 +113,7 @@ void make_lattice(site *s, size_t n, Complx val) {
 #elif  USE_OPENMP
   #include "mat_nn_openmp.hpp"
 #elif  USE_OPENMP_CPU
-  #include "mat_nn_openmp_cpu.hpp"
+  #include "mat_nn_openmp2.hpp"
 #elif  USE_OPENACC
   #include "mat_nn_openacc.hpp"
 #elif  USE_OPENCL
