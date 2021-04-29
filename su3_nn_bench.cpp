@@ -88,26 +88,22 @@ void init_link(su3_matrix *s, Complx val) {
 
 // initializes a lattice site 
 void make_lattice(site *s, size_t n, Complx val) {
-  int nx = n;
-  int ny = n;
-  int nz = n;
-  int nt = n;
-#ifdef USE_OPENMP
-  // For NUMA reasons, use same pragma construct as OpenMP version
-  #pragma omp parallel for schedule(static)
-#endif
-  for(int i=0; i<nt*nz*ny*nx; i++) {
-    int x = i % nx;
-    int y = (i/nx) % ny;
-    int z = (i/(nx*ny)) % nz;
-    int t = (i/(nx*ny*nz)) % nt;
-    s[i].x=x; s[i].y=y; s[i].z=z; s[i].t=t;
-    s[i].index = i;
-    if( (x+y+z+t)%2 == 0)
-      s[i].parity=EVEN;
-    else
-      s[i].parity=ODD;
-    init_link(&s[i].link[0], val);
+  int nx=n;
+  int ny=n;
+  int nz=n;
+  int nt=n;
+  #pragma omp parallel for
+  for(int t=0;t<nt;t++) {
+    int i=t*nz*ny*nx;
+    for(int z=0;z<nz;z++)for(int y=0;y<ny;y++)for(int x=0;x<nx;x++,i++){
+      s[i].x=x; s[i].y=y; s[i].z=z; s[i].t=t;
+      s[i].index = x+nx*(y+ny*(z+nz*t));
+      if( (x+y+z+t)%2 == 0)
+        s[i].parity=EVEN;
+      else
+        s[i].parity=ODD;
+      init_link(&s[i].link[0], val);
+    }
   }
 }
 
@@ -116,6 +112,8 @@ void make_lattice(site *s, size_t n, Complx val) {
   #include "mat_nn_cuda.hpp"
 #elif  USE_OPENMP
   #include "mat_nn_openmp.hpp"
+#elif  USE_OPENMP_CPU
+  #include "mat_nn_openmp_cpu.hpp"
 #elif  USE_OPENACC
   #include "mat_nn_openacc.hpp"
 #elif  USE_OPENCL
@@ -180,6 +178,10 @@ int main(int argc, char **argv)
   std::vector<site> a(total_sites);
   std::vector<su3_matrix> b(4);
   std::vector<site> c(total_sites);
+
+#ifdef USE_OPENMP_CPU
+  first_touch(a.data(), b.data(), c.data(), total_sites);
+#endif
 
   // initialize the lattices
   make_lattice(a.data(), ldim, Complx{1.0,0.0});

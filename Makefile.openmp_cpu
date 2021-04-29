@@ -1,8 +1,14 @@
 #
-# Compiler can be icpc | icx | clang
+# COMPILER = icpc | icx | gcc | nvc++ | clang (default)
+# 
+# VERSION = 0 | 1 | 2 | 3 | 4 | 5
+ifndef VERSION
+  VERSION=1
+endif
 
-DEFINES = -DUSE_OPENMP -DUSE_VERSION=3 -DNOTARGET
-DEPENDS = su3.hpp lattice.hpp mat_nn_openmp.hpp
+
+DEFINES = -DUSE_OPENMP_CPU -DUSE_VERSION=$(VERSION)
+DEPENDS = su3.hpp lattice.hpp mat_nn_openmp_cpu.hpp
 
 ifeq ($(COMPILER),icpc)
   CC = icpc
@@ -20,6 +26,10 @@ else ifeq ($(COMPILER),g++)
   CC = g++
   CFLAGS = -O3
   CFLAGS += -fopenmp
+  DEFINES += -DMILC_COMPLEX
+else ifeq ($(COMPILER),nvc++)
+  CC = nvc++
+  CFLAGS = -fast -mp=multicore -Minfo=accel,mp
   DEFINES += -DMILC_COMPLEX
 else
   CC = clang++
