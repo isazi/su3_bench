@@ -169,7 +169,7 @@ int main(int argc, char **argv)
     case 'h':
       fprintf(stderr, "Usage: %s [-i iterations] [-l lattice dimension] \
 [-t threads per workgroup] [-d device] [-v verbosity level [0,1,2,3]] [-w warmups]\n", argv[0]);
-      exit (1);
+      exit (EXIT_SUCCESS);
     }
   }
 
@@ -198,8 +198,8 @@ int main(int argc, char **argv)
     printf("Total execution time = %f secs\n", ttotal);
   // calculate flops/s, etc.
   // each matrix multiply is (3*3)*4*(12 mult + 12 add) = 4*(108 mult + 108 add) = 4*216 ops
-  const double tflop = (double)iterations * total_sites * 864.0;
-  printf("Total GFLOP/s = %.3f\n", tflop / ttotal / 1.0e9);
+  const double tflop = (double)total_sites * 864.0;
+  printf("Total GFLOP/s = %.3f\n", iterations * tflop / ttotal / 1.0e9);
 
   const double memory_usage = (double)sizeof(site)*(a.capacity()+c.capacity())+sizeof(su3_matrix)*b.capacity();
   printf("Total GByte/s (GPU memory)  = %.3f\n", iterations * memory_usage / ttotal / 1.0e9);
