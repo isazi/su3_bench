@@ -1,6 +1,6 @@
 #
 HIP_PLATFORM=$(shell hipconfig --platform)
-ifeq (${HIP_PLATFORM}, nvcc)
+ifeq (${HIP_PLATFORM}, $(filter $(HIP_PLATFORM), nvcc nvidia))
   # ARCH = V100 | A100
   ifeq ($(ARCH),A100)
     HIPCC_FLAGS = -gencode arch=compute_80,code=sm_80
