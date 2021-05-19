@@ -28,7 +28,7 @@ typedef std::chrono::system_clock Clock;
 // Global variables
 unsigned int verbose=1;
 size_t       warmups=1;
-// global argc and argv for parsing model specific parameters 
+// global argc and argv for parsing model specific parameters
 int  g_argc;
 char **g_argv;
 
@@ -65,6 +65,17 @@ bool almost_equal(thrust::complex<T> x, thrust::complex<T> y, double tol)
 }
 #endif
 
+// Kokkos version
+#if defined(USE_KOKKOS)
+template <class T>
+bool almost_equal(Kokkos::complex<T> x, Kokkos::complex<T> y, double tol) {
+    if (std::isnan(x.real()) || std::isnan(x.imag()) || std::isnan(y.real()) ||
+        std::isnan(y.imag()))
+        return (0);
+    return Kokkos::abs(x - y) < tol;
+}
+#endif
+
 #ifdef RANDOM_INIT
 #include <random>
 std::random_device rd;  //Will be used to obtain a seed for the random number engine
@@ -86,12 +97,13 @@ void init_link(su3_matrix *s, Complx val) {
   }
 }
 
-// initializes a lattice site 
+// initializes a lattice site
 void make_lattice(site *s, size_t n, Complx val) {
   int nx=n;
   int ny=n;
   int nz=n;
   int nt=n;
+
   #pragma omp parallel for
   for(int t=0;t<nt;t++) {
     int i=t*nz*ny*nx;
@@ -126,6 +138,8 @@ void make_lattice(site *s, size_t n, Complx val) {
   #include "mat_nn_dpcpp.hpp"
 #elif USE_HIP
   #include "mat_nn_hip.hpp"
+#elif USE_KOKKOS
+  #include "mat_nn_kokkos.hpp"
 #else
   #error Unknown programming model
 #endif
@@ -175,9 +189,17 @@ int main(int argc, char **argv)
 
   // allocate and initialize the working lattices and B su3 matrices
   size_t total_sites = ldim*ldim*ldim*ldim;
+#ifdef USE_KOKKOS
+  Kokkos::ScopeGuard scope(argc, argv);
+  printf("Kokkos::ExecutionSpace = %s\n", typeid(ExecSpace).name());
+  h_site_view a("a", total_sites);
+  h_site_view c("c", total_sites);
+  h_su3_matrix_view b("b", 4);
+#else
   std::vector<site> a(total_sites);
   std::vector<su3_matrix> b(4);
   std::vector<site> c(total_sites);
+#endif
 
 #ifdef USE_OPENMP_CPU
   first_touch(a.data(), b.data(), c.data(), total_sites);
@@ -201,26 +223,30 @@ int main(int argc, char **argv)
   const double tflop = (double)total_sites * 864.0;
   printf("Total GFLOP/s = %.3f\n", iterations * tflop / ttotal / 1.0e9);
 
-  const double memory_usage = (double)sizeof(site)*(a.capacity()+c.capacity())+sizeof(su3_matrix)*b.capacity();
+  const double memory_usage = (double)sizeof(site) * (a.size() + c.size()) + sizeof(su3_matrix) * b.size();
   printf("Total GByte/s (GPU memory)  = %.3f\n", iterations * memory_usage / ttotal / 1.0e9);
   fflush(stdout);
 
   // Verification of the result
-  for (int i=0;i<total_sites;++i) for(int j=0;j<4;++j)  for(int k=0;k<3;++k)  for(int l=0;l<3;++l) {
+  for (size_t i=0;i<total_sites;++i) for(int j=0;j<4;++j)  for(int k=0;k<3;++k)  for(int l=0;l<3;++l) {
     Complx cc = {0.0, 0.0};
     for(int m=0;m<3;m++) {
       #ifdef MILC_COMPLEX
         CMULSUM( a[i].link[j].e[k][m], b[j].e[m][l], cc)
+      #elif USE_KOKKOS
+        cc += a(i).link[j].e[k][m] * b[j].e[m][l];
       #else
         cc += a[i].link[j].e[k][m] * b[j].e[m][l];
       #endif
     }
 
     #ifdef MILC_COMPLEX
-       assert(almost_equal(c[i].link[j].e[k][l].real, cc.real, 1E-6));
-       assert(almost_equal(c[i].link[j].e[k][l].imag, cc.imag, 1E-6));
+      assert(almost_equal(c[i].link[j].e[k][l].real, cc.real, 1E-6));
+      assert(almost_equal(c[i].link[j].e[k][l].imag, cc.imag, 1E-6));
+    #elif USE_KOKKOS
+      assert(almost_equal(c(i).link[j].e[k][l], cc, 1E-6));
     #else
-       assert(almost_equal(c[i].link[j].e[k][l], cc, 1E-6));
+      assert(almost_equal(c[i].link[j].e[k][l], cc, 1E-6));
     #endif
   }
 

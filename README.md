@@ -1,4 +1,4 @@
-## SU3_bench: Lattice QCD SU(3) Matrix-Matrix Multiply Microbenchmark  
+## SU3_bench: Lattice QCD SU(3) Matrix-Matrix Multiply Microbenchmark
 The purpose of this microbenchmark is to provide a means to explore different programming methodologies using a simple, but nontrivial, mathematical kernel. It is most useful in exploring the performance of current and next-generation architectures and their respective programming environments, in particular the maturity of compilers.
 
 The kernel is based on the *mult\_su3\_nn()* SU(3) matrix-matrix multiply routine in the [MILC Lattice Quantum Chromodynamics(LQCD) code](https://github.com/milc-qcd/milc_qcd). Matrix-matrix (and matrix-vector) SU(3) operations are a fundamental building block of LQCD applications. Most LQCD applications use custom implementations of these kernels, and they are usually written in machine specific languages and/or  intrinsics in order to obtain maximum performance on advanced high-performance computing architectures such as highly parallel multi-core CPUs and GPUs.
@@ -57,7 +57,7 @@ The code is written in a combination of standard C and C++ programming languages
 ```
 double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<site> &c,
               size_t total_sites, size_t iterations, size_t threads_per_workgroup, int device);
-```  
+```
 
 and the return value is the total execution time in seconds.
 
@@ -67,7 +67,17 @@ The high level intent is to keep as much programming model specific implementati
 
 #### Using std::complex or MILC complex
 
-When the benchmark was initially being developed, some compilers where unable to handle `std::complex` math in the kernel. For this reason, some implementations have two complex math methods 1) use `std::complex` and let the compiler handle the arithmetic, or 2) define a complex value using a data structure and explicitly handle the arithmetic. The latter is enabled with `-DMILC_COMPLEX` at compile time. This issue may be fully resolved at this point in time, but the different methods are left in the code in case there may be performance issues for std::complex that one may want to investigate with a particular compiler. 
+When the benchmark was initially being developed, some compilers where unable to handle `std::complex` math in the kernel. For this reason, some implementations have two complex math methods 1) use `std::complex` and let the compiler handle the arithmetic, or 2) define a complex value using a data structure and explicitly handle the arithmetic. The latter is enabled with `-DMILC_COMPLEX` at compile time. This issue may be fully resolved at this point in time, but the different methods are left in the code in case there may be performance issues for std::complex that one may want to investigate with a particular compiler.
 
 ### Contact info
 SU3_Bench is part of the [NERSC Proxy Application Suite](https://gitlab.com/NERSC/nersc-proxies/info).
+
+
+#### Using Kokkos version
+
+Kokkos version is the only that uses a CMake build system. The build only requires a path to the kokkos library install, for example:
+```
+mkdir build && cd build
+cmake -DKokkos_ROOT=$PATH-to-kokkos-install -DCMAKE_CXX_EXTENSIONS=OFF ../
+```
+The `-DCMAKE_CXX_EXTENSIONS=OFF` is required by Kokkos to avoid build warnings.
