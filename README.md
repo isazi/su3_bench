@@ -31,6 +31,15 @@ clang++ -O3 -fopenmp -fopenmp-targets=nvptx64-nvidia-cuda -DUSE_OPENMP -DMILC_CO
 
 Each programming model has its own implementation dependent compile time parameters, including multiple compiler options and multiple target GPU architectures. See the respective Makefile.xxx to understand what these options are as they are too numerous to cover in a README, and given the nature of being an active research code, they are prone to change over time.
 
+#### Using Kokkos version
+The Kokkos version uses a CMake build system. The build only requires a path to the Kokkos library install, for example:
+```
+mkdir build && cd build
+cmake -DKokkos_ROOT=$PATH-to-kokkos-install -DCMAKE_CXX_EXTENSIONS=OFF ../
+```
+The `-DCMAKE_CXX_EXTENSIONS=OFF` is required by Kokkos to avoid build warnings.
+
+
 #### Runtime parameters
 There are several runtime parameters that control execution:
 
@@ -71,13 +80,3 @@ When the benchmark was initially being developed, some compilers where unable to
 
 ### Contact info
 SU3_Bench is part of the [NERSC Proxy Application Suite](https://gitlab.com/NERSC/nersc-proxies/info).
-
-
-#### Using Kokkos version
-
-Kokkos version is the only that uses a CMake build system. The build only requires a path to the kokkos library install, for example:
-```
-mkdir build && cd build
-cmake -DKokkos_ROOT=$PATH-to-kokkos-install -DCMAKE_CXX_EXTENSIONS=OFF ../
-```
-The `-DCMAKE_CXX_EXTENSIONS=OFF` is required by Kokkos to avoid build warnings.
