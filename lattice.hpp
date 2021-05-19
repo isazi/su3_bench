@@ -25,11 +25,13 @@ typedef struct Site {
 #else
     int pad[10];  // pad out to 64 byte alignment
 #endif
-#ifdef USE_KOKKOS
+#ifndef USE_OPENCL
+    #ifdef USE_KOKKOS
     KOKKOS_INLINE_FUNCTION
-#endif
+    #endif
     Site() {}  // Use a no-op constructor to avoid NUMA initialization issues
                // The application is responsible for initialization
+#endif
 } site __attribute__((aligned));
 
 #endif  // _LATTICE_HPP
