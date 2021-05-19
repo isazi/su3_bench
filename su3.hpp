@@ -8,6 +8,12 @@
   struct fsu3_vector { thrust::complex<float> c[3]; } ;
   struct dsu3_matrix { thrust::complex<double> e[3][3]; } ;
   struct dsu3_vector { thrust::complex<double> c[3]; } ;
+#elif USE_KOKKOS
+  #include <Kokkos_Core.hpp>
+  struct fsu3_matrix { Kokkos::complex<float> e[3][3]; } ;
+  struct fsu3_vector { Kokkos::complex<float> c[3]; } ;
+  struct dsu3_matrix { Kokkos::complex<double> e[3][3]; } ;
+  struct dsu3_vector { Kokkos::complex<double> c[3]; } ;
 #else
   #include <complex>
   struct fsu3_matrix { std::complex<float> e[3][3]; } ;
@@ -23,6 +29,8 @@
   #define Real          float
 #ifdef USE_THRUST
   #define Complx        thrust::complex<float>
+#elif USE_KOKKOS
+  #define Complx        Kokkos::complex<float>
 #else
   #define Complx        std::complex<float>
 #endif
@@ -32,6 +40,8 @@
   #define Real          double
 #ifdef USE_THRUST
   #define Complx        thrust::complex<double>
+#elif USE_KOKKOS
+  #define Complx        Kokkos::complex<double>
 #else
   #define Complx        std::complex<double>
 #endif
