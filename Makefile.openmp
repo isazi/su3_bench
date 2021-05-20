@@ -1,7 +1,7 @@
 #
 # Vendor can be nvidia | intel | amd
 ifndef VENDOR
-  VENDOR = nvidia
+  VENDOR = amd
 endif
 # Compiler can be clang | pgi | cray
 ifndef COMPILER
@@ -40,7 +40,13 @@ else ifeq ($(VENDOR),intel)
 else ifeq ($(VENDOR),amd)
   CC = clang++
   CFLAGS = -O3
-  CFLAGS += -fopenmp -fopenmp-targets=amdgcn-amd-amdhsa -Xopenmp-target=amdgcn-amd-amdhsa -march=gfx906
+  CFLAGS += -fopenmp -fopenmp-targets=amdgcn-amd-amdhsa -Xopenmp-target=amdgcn-amd-amdhsa
+  # ARCH = MI60 | MI100
+  ifeq ($(ARCH),MI100)
+    CFLAGS += -march=gfx908
+  else
+    CFLAGS += -march=gfx906
+  endif
   DEFINES += -DMILC_COMPLEX
 endif 
 
