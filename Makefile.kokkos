@@ -1,7 +1,7 @@
-KOKKOS_PATH = ${HOME}/Kokkos/kokkos
+KOKKOS_PATH = ${HOME}/Kokkos/upstream/kokkos
 SRC = su3_nn_bench.cpp
-#KOKKOS_DEVICES=Cuda
-KOKKOS_DEVICES=OpenMPTarget
+KOKKOS_DEVICES=Cuda
+#KOKKOS_DEVICES=OpenMPTarget
 
 
 default: build
@@ -39,9 +39,6 @@ DEPENDS = su3.hpp lattice.hpp mat_nn_kokkos.hpp
 
 LINK = ${CXX}
 
-#CXXFLAGS += -Winvalid-constexpr
-#CXXFLAGS += -DNDEBUG
-
 DEPFLAGS = -M
 
 OBJ32= $(SRC:.cpp=.o)
@@ -67,4 +64,4 @@ $(OBJ64):$(SRC) $(KOKKOS_CPP_DEPENDS) $(DEPENDS)
 	$(CXX) $(KOKKOS_CPPFLAGS) $(KOKKOS_CXXFLAGS) $(CXXFLAGS) $(EXTRA_INC) -c $<
 
 clean: kokkos-clean
-	rm -f *.o *exe
+	rm -f *.o *kokkos*.exe

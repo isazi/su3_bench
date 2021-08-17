@@ -5,6 +5,7 @@ project(SU3-kkokkos
 
 SET(EXE32 bench_f32_kokkos.exe)
 SET(EXE64 bench_f64_kokkos.exe)
+set (CMAKE_CUDA_ARCHITECTURES 70 80)
 
 
 find_package(Kokkos REQUIRED)
