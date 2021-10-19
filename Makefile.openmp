@@ -34,8 +34,8 @@ ifeq ($(VENDOR),nvidia)
     DEFINES += -DMILC_COMPLEX
   endif
 else ifeq ($(VENDOR),intel)
-  CC = icx
-  CFLAGS = -fiopenmp -fopenmp-targets=spir64 -D__STRICT_ANSI__
+  CC = icpx
+  CFLAGS = -fiopenmp -fopenmp-targets=spir64
   DEFINES += -DMILC_COMPLEX
 else ifeq ($(VENDOR),amd)
   CC = clang++
