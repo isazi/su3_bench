@@ -50,7 +50,7 @@ elseif (${MODEL} STREQUAL "RAJA")
         # TODO Test if I can remove
         set(CMAKE_CUDA_SEPARABLE_COMPILATION ON)
 
-        set_source_files_properties(${SOURCE} PROPERTIES LANGUAGE CUDA)
+        set_source_files_properties(${SOURCES} PROPERTIES LANGUAGE CUDA)
         set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -extended-lambda --expt-relaxed-constexpr --restrict --keep")
     elseif (${RAJA_BACK_END} STREQUAL "HIP")
         enable_language(HIP)
@@ -59,7 +59,7 @@ elseif (${MODEL} STREQUAL "RAJA")
         # TODO Test if I can remove
         set(CMAKE_HIP_SEPARABLE_COMPILATION ON)
 
-        set_source_files_properties(${SOURCE} PROPERTIES LANGUAGE HIP)
+        set_source_files_properties(${SOURCES} PROPERTIES LANGUAGE HIP)
     endif ()
 elseif (${MODEL} STREQUAL "SYCL")
     set(CMAKE_CXX_STANDARD 17)
