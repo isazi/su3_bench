@@ -53,8 +53,8 @@ elseif (${MODEL} STREQUAL "RAJA")
         set_source_files_properties(${SOURCE} PROPERTIES LANGUAGE CUDA)
         set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -extended-lambda --expt-relaxed-constexpr --restrict --keep")
     elseif (${RAJA_BACK_END} STREQUAL "HIP")
-        find_package(hip REQUIRED)
         enable_language(HIP)
+        find_package(hip REQUIRED)
         set(CMAKE_HIP_STANDARD 14)
         # TODO Test if I can remove
         set(CMAKE_HIP_SEPARABLE_COMPILATION ON)
@@ -66,21 +66,33 @@ elseif (${MODEL} STREQUAL "SYCL")
     add_compile_definitions(USE_SYCL)
 
     separate_arguments(OFFLOAD_FLAGS)
+
     target_compile_options(bench_f32 PUBLIC "$<$<CONFIG:RELEASE>:${OFFLOAD_FLAGS}>")
+    target_compile_options(bench_f64 PUBLIC "$<$<CONFIG:RELEASE>:${OFFLOAD_FLAGS}>")
+
+    target_link_options(bench_f32 PUBLIC "$<$<CONFIG:RELEASE>:${OFFLOAD_FLAGS}>")
     target_link_options(bench_f64 PUBLIC "$<$<CONFIG:RELEASE>:${OFFLOAD_FLAGS}>")
 elseif (${MODEL} STREQUAL "OpenACC")
     add_compile_definitions(USE_OPENACC)
 
     separate_arguments(OFFLOAD_FLAGS)
+
     target_compile_options(bench_f32 PUBLIC "$<$<CONFIG:RELEASE>:${OFFLOAD_FLAGS}>")
+    target_compile_options(bench_f64 PUBLIC "$<$<CONFIG:RELEASE>:${OFFLOAD_FLAGS}>")
+
+    target_link_options(bench_f32 PUBLIC "$<$<CONFIG:RELEASE>:${OFFLOAD_FLAGS}>")
     target_link_options(bench_f64 PUBLIC "$<$<CONFIG:RELEASE>:${OFFLOAD_FLAGS}>")
 elseif (${MODEL} STREQUAL "OpenMP-Offload")
     add_compile_definitions(USE_OPENMP)
 
     separate_arguments(OFFLOAD_FLAGS)
+
     target_compile_options(bench_f32 PUBLIC "$<$<CONFIG:RELEASE>:${OFFLOAD_FLAGS}>")
+    target_compile_options(bench_f64 PUBLIC "$<$<CONFIG:RELEASE>:${OFFLOAD_FLAGS}>")
+
+    target_link_options(bench_f32 PUBLIC "$<$<CONFIG:RELEASE>:${OFFLOAD_FLAGS}>")
     target_link_options(bench_f64 PUBLIC "$<$<CONFIG:RELEASE>:${OFFLOAD_FLAGS}>")
-else ()
+else () 
     message(FATAL_ERROR "Invalid Model")
 endif ()
 
