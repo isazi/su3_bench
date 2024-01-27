@@ -8,8 +8,14 @@
   #define USE_VERSION 2
 #endif
 
-double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<site> &c, 
-              size_t total_sites, size_t iterations, size_t threads_per_team, int use_device)
+typedef struct{
+	double d2h_time;
+	double kernel_time;
+	double h2d_time;
+} Profile;
+
+double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<site> &c,
+		  size_t total_sites, size_t iterations, size_t threads_per_team, int use_device, Profile* profile)
 {
   size_t num_teams = NUM_TEAMS;
 
@@ -36,11 +42,16 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
  
   // Move A and B data to the device, Allocate C data
   double ttotal;
+
+  auto tstart = Clock::now();
+  auto tprofiling = tstart;
+
   #pragma omp target data map(to: d_a[0:len_a], d_b[0:len_b]) map(from: d_c[0:len_c])
   {  // begin OpenMP block
+  profile->h2d_time = (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
 
   // benchmark loop
-  auto tstart = Clock::now();
+  tstart = Clock::now();
 #if USE_VERSION == 0
   // Baseline implementation
 	// Original intent is to have teams process whole sites, 
@@ -142,10 +153,14 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
     std::cout << "Number of work items = " << num_work_items << std::endl;
   }
 
+  tprofiling = Clock::now();
+
   for (int iters=0; iters<iterations+warmups; ++iters) {
-    if (iters == warmups)
+    if (iters == warmups) {
       tstart = Clock::now();
-    #pragma omp target teams distribute parallel for num_teams(num_teams)  thread_limit(threads_per_team)
+      tprofiling = Clock::now();
+    }
+    #pragma omp target teams distribute parallel for
     for (int id =0; id < num_work_items; id++) {
       int i = id/36;
       if (i < total_sites) {
@@ -169,6 +184,8 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
       }
     }
   }
+  profile->kernel_time = (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
+  tprofiling = Clock::now();
 
 #else // VERSION == 3 || VERSION == 4
   // Baseline implementation
@@ -232,9 +249,10 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
   }
 
 #endif
+  } // end of OpenMP block, C gets moved back to the host
 
   ttotal = std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tstart).count();
-  } // end of OpenMP block, C gets moved back to the host
+  profile->d2h_time = (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
 
   // It is not possible to check for NaNs when the application is compiled with -ffast-math
   // Therefore we print out the calculated checksum as a manual check for the user.

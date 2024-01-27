@@ -122,4 +122,3 @@ double su3_mat_nn(const std::vector<site> &a, const std::vector<su3_matrix> &b, 
 
   return (ttotal /= 1.0e6);
 } // end of SYCL block
-

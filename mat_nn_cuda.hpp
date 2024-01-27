@@ -9,6 +9,12 @@
 
 #define THREADS_PER_SITE 36
 
+typedef struct{
+	double d2h_time;
+	double kernel_time;
+	double h2d_time;
+} Profile;
+
 //*******************  m_mat_nn.c  (in su3.a) ****************************
 //  void mult_su3_nn( su3_matrix *a,*b,*c )
 //  matrix multiply, no adjoints 
@@ -38,7 +44,7 @@ __global__ void k_mat_nn(
 }
 
 double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<site> &c, 
-              size_t total_sites, size_t iterations, size_t threadsPerBlock, int use_device)
+		  size_t total_sites, size_t iterations, size_t threadsPerBlock, int use_device, Profile *profile)
 {
   int blocksPerGrid;
   int size_a = sizeof(site) * total_sites;
@@ -75,6 +81,9 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
     printf("Using device %d: %s\n", use_device, device_prop.name);
   }
 
+  auto tstart = Clock::now();
+  auto tprofiling = tstart;
+
   // Declare target storage and copy A and B
   cudaError_t cuErr;
   site *d_a, *d_c;
@@ -88,6 +97,8 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
   cudaMemcpy(d_a, a.data(), size_a, cudaMemcpyHostToDevice);
   cudaMemcpy(d_b, b.data(), size_b, cudaMemcpyHostToDevice);
 
+  profile->h2d_time = (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
+
   double sitesPerBlock = (double)threadsPerBlock / THREADS_PER_SITE;
   blocksPerGrid = total_sites/sitesPerBlock + 0.999999;
 
@@ -97,20 +108,28 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
   }
 
   // benchmark loop
-  auto tstart = Clock::now();
+  tprofiling = Clock::now();
+
   for (int iters=0; iters<iterations+warmups; ++iters) {
     if (iters == warmups) {
       cudaDeviceSynchronize();
       tstart = Clock::now();
-	  }
+      tprofiling = Clock::now();
+    }
     k_mat_nn<<<blocksPerGrid, threadsPerBlock>>>(d_a, d_b, d_c, total_sites);
   }
   cudaDeviceSynchronize();
-  double ttotal = std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tstart).count();
   CUCHECK(cudaGetLastError(), "k_mat_nn kernel Failed");
 
+  profile->kernel_time = (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
+
   // copy data back from device
+  tprofiling = Clock::now();
+
   cudaMemcpy(c.data(), d_c, size_c, cudaMemcpyDeviceToHost);
+
+  profile->d2h_time= (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
+  double ttotal = std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tstart).count();
 
   // Deallocate
   cudaFree(d_a);
@@ -119,4 +138,3 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
 
   return (ttotal /= 1.0e6);
 }
-

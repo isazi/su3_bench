@@ -10,6 +10,14 @@ using d_site_view = Kokkos::View<site *, ExecSpace>;
 using d_su3_matrix_view = Kokkos::View<su3_matrix *, ExecSpace>;
 using h_site_view = Kokkos::View<site *, HostExecSpace>;
 using h_su3_matrix_view = Kokkos::View<su3_matrix *, HostExecSpace>;
+
+typedef struct{
+	double d2h_time;
+	double kernel_time;
+	double h2d_time;
+} Profile;
+
+Kokkos::Timer start;
 //
 //*******************  m_mat_nn.c  (in su3.a) ****************************
 //  void mult_su3_nn( su3_matrix *a,*b,*c )
@@ -55,7 +63,7 @@ double k_mat_nn(size_t iterations, d_site_view a, d_su3_matrix_view b,
 
 double su3_mat_nn(h_site_view &a, h_su3_matrix_view &b, h_site_view &c,
                   size_t total_sites, size_t iterations, size_t threadsPerBlock,
-                  int use_device) {
+                  int use_device, Profile* profile) {
     if (threadsPerBlock == 0) threadsPerBlock = THREADS_PER_SITE;
     double sitesPerBlock = (double)threadsPerBlock / THREADS_PER_SITE;
     int blocksPerGrid = total_sites / sitesPerBlock + 0.999999;
@@ -66,6 +74,9 @@ double su3_mat_nn(h_site_view &a, h_su3_matrix_view &b, h_site_view &c,
         printf("Device number set to %d\n", use_device);
     }
 
+    start.reset();
+    auto tprofiling = Clock::now();
+
     d_site_view d_a("d_a", total_sites);
     d_site_view d_c("d_c", total_sites);
     d_su3_matrix_view d_b("d_b", 4);
@@ -73,10 +84,19 @@ double su3_mat_nn(h_site_view &a, h_su3_matrix_view &b, h_site_view &c,
     Kokkos::deep_copy(d_a, a);
     Kokkos::deep_copy(d_b, b);
 
-    double ttotal = k_mat_nn(iterations, d_a, d_b, d_c, total_sites,
-                             blocksPerGrid, threadsPerBlock);
+    profile->h2d_time = (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
+    tprofiling = Clock::now();
+
+    k_mat_nn(iterations, d_a, d_b, d_c, total_sites,
+             blocksPerGrid, threadsPerBlock);
+
+    profile->kernel_time = (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
+    tprofiling = Clock::now();
 
     Kokkos::deep_copy(c, d_c);
+
+    profile->d2h_time = (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
+    double ttotal = start.seconds();
 
     return ttotal;
 }
