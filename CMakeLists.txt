@@ -63,7 +63,7 @@ elseif (${MODEL} STREQUAL "RAJA")
     endif ()
 elseif (${MODEL} STREQUAL "SYCL")
     set(CMAKE_CXX_STANDARD 17)
-    add_compile_definitions(USE_SYCL)
+    add_compile_definitions(USE_SYCL MILC_COMPLEX)
 
     separate_arguments(OFFLOAD_FLAGS)
 
