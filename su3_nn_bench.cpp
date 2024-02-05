@@ -213,8 +213,13 @@ int main(int argc, char **argv)
 #endif
 
   // initialize the lattices
+#ifdef USE_RAJA
+  make_lattice(a, ldim, Complx{1.0,0.0});
+  init_link(b, Complx{1.0/3.0,0.0});
+#else
   make_lattice(a.data(), ldim, Complx{1.0,0.0});
   init_link(b.data(), Complx{1.0/3.0,0.0});
+#endif
 
   if (verbose >= 1) {
     printf("Number of sites = %zu^4\n", ldim);
@@ -235,7 +240,11 @@ int main(int argc, char **argv)
   const double tflop = (double)total_sites * 864.0;
   printf("Total GFLOP/s = %.3f\n", iterations * tflop / ttotal / 1.0e9);
 
+#ifdef USE_RAJA
+  const double memory_usage = (double)sizeof(site) * (total_sites * 2) + sizeof(su3_matrix) * 4;
+#else
   const double memory_usage = (double)sizeof(site) * (a.size() + c.size()) + sizeof(su3_matrix) * b.size();
+#endif
   printf("Total GByte/s (GPU memory)  = %.3f\n", iterations * memory_usage / ttotal / 1.0e9);
   fflush(stdout);
 
@@ -262,6 +271,18 @@ int main(int argc, char **argv)
     #endif
   }
 
+<<<<<<< HEAD
+=======
+#ifdef USE_RAJA
+  //a.free();
+  //b.free();
+  //c.free();
+  cpu_pool.deallocate(a);
+  cpu_pool.deallocate(b);
+  cpu_pool.deallocate(c);
+#endif
+
+>>>>>>> f7aadc6 (raja wip)
   // check memory usage
   if (verbose >= 2) {
     printf("Total allocation for matrices = %.3f MiB\n", memory_usage / 1048576.0);
