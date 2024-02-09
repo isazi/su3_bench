@@ -47,17 +47,15 @@ elseif (${MODEL} STREQUAL "RAJA")
     if (${RAJA_BACK_END} STREQUAL "CUDA")
         enable_language(CUDA)
         set(CMAKE_CUDA_STANDARD 14)
-        # TODO Test if I can remove
-        set(CMAKE_CUDA_SEPARABLE_COMPILATION ON)
 
         set_source_files_properties(${SOURCES} PROPERTIES LANGUAGE CUDA)
         set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -extended-lambda --expt-relaxed-constexpr --restrict --keep")
+        set_target_properties(bench_f32 PROPERTIES CUDA_RESOLVE_DEVICE_SYMBOLS ON)
+        set_target_properties(bench_f64 PROPERTIES CUDA_RESOLVE_DEVICE_SYMBOLS ON)
     elseif (${RAJA_BACK_END} STREQUAL "HIP")
         enable_language(HIP)
         find_package(hip REQUIRED)
         set(CMAKE_HIP_STANDARD 14)
-        # TODO Test if I can remove
-        set(CMAKE_HIP_SEPARABLE_COMPILATION ON)
 
         set_source_files_properties(${SOURCES} PROPERTIES LANGUAGE HIP)
     endif ()
