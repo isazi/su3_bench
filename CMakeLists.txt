@@ -63,6 +63,29 @@ elseif (${MODEL} STREQUAL "SYCL")
     set(CMAKE_CXX_STANDARD 17)
     add_compile_definitions(USE_SYCL MILC_COMPLEX)
 
+    find_package(AdaptiveCpp)
+    if (AdaptiveCpp_FOUND)
+      add_sycl_to_target(TARGET bench_f32 SOURCES ${SOURCES})
+      add_sycl_to_target(TARGET bench_f64 SOURCES ${SOURCES})
+    endif ()
+
+    separate_arguments(OFFLOAD_FLAGS)
+
+    target_compile_options(bench_f32 PUBLIC "$<$<CONFIG:RELEASE>:${OFFLOAD_FLAGS}>")
+    target_compile_options(bench_f64 PUBLIC "$<$<CONFIG:RELEASE>:${OFFLOAD_FLAGS}>")
+
+    target_link_options(bench_f32 PUBLIC "$<$<CONFIG:RELEASE>:${OFFLOAD_FLAGS}>")
+    target_link_options(bench_f64 PUBLIC "$<$<CONFIG:RELEASE>:${OFFLOAD_FLAGS}>")
+elseif (${MODEL} STREQUAL "DPCPP")
+    set(CMAKE_CXX_STANDARD 17)
+  add_compile_definitions(USE_DPCPP MILC_COMPLEX)
+
+    find_package(AdaptiveCpp)
+    if (AdaptiveCpp_FOUND)
+      add_sycl_to_target(TARGET bench_f32 SOURCES ${SOURCES})
+      add_sycl_to_target(TARGET bench_f64 SOURCES ${SOURCES})
+    endif ()
+
     separate_arguments(OFFLOAD_FLAGS)
 
     target_compile_options(bench_f32 PUBLIC "$<$<CONFIG:RELEASE>:${OFFLOAD_FLAGS}>")
