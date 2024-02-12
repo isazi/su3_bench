@@ -52,12 +52,17 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
   constexpr int sides_per_block = threads_per_block / threads_per_side;
   const int teams = (total_sites + sides_per_block - 1) / sides_per_block;
 
-  RAJA::launch<launch_policy>(RAJA::ExecPlace::DEVICE,
+  auto tstart = Clock::now();
+  for (size_t iters = 0; iters < iterations + warmups; ++iters) {
+    if (iters == warmups) {
+      tstart = Clock::now();
+    }
+    RAJA::launch<launch_policy>(RAJA::ExecPlace::DEVICE,
       RAJA::LaunchParams(RAJA::Teams(teams), RAJA::Threads(sides_per_block*4,3,3)),
-      [=] RAJA_HOST_DEVICE (RAJA::LaunchContext ctx) {
-        RAJA::loop<teams_x>(ctx, RAJA::TypedRangeSegment<int>(0, (teams)), [&] (int site) {
-           RAJA::loop<threads_x>(ctx, RAJA::TypedRangeSegment<int>(0, sides_per_block *4), [&] (int j) {
-             RAJA::loop<threads_y>(ctx, RAJA::TypedRangeSegment<int>(0, 3), [&] (int k) {
+        [=] RAJA_HOST_DEVICE (RAJA::LaunchContext ctx) {
+          RAJA::loop<teams_x>(ctx, RAJA::TypedRangeSegment<int>(0, (teams)), [&] (int site) {
+            RAJA::loop<threads_x>(ctx, RAJA::TypedRangeSegment<int>(0, sides_per_block *4), [&] (int j) {
+              RAJA::loop<threads_y>(ctx, RAJA::TypedRangeSegment<int>(0, 3), [&] (int k) {
                 RAJA::loop<threads_z>(ctx, RAJA::TypedRangeSegment<int>(0, 3), [&] (int l) {
                   const int site_id = j / sides_per_block;
                   const int my_site = (site * sides_per_block) + site_id;
@@ -74,8 +79,10 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
            });
         });
       });
+  }
+  double ttotal = std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tstart).count();
 
   rm.copy(c.data(), d_c);
 
-  return 0;
+  return (ttotal /= 1.0e6);
 }
