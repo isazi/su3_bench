@@ -26,7 +26,7 @@ Kokkos::Timer start;
 
 double k_mat_nn(size_t iterations, d_site_view a, d_su3_matrix_view b,
                 d_site_view c, int total_sites, int blocksPerGrid,
-                int threadsPerBlock) {
+                int threadsPerBlock, Profile* profile) {
     using team_policy =
         Kokkos::TeamPolicy<ExecSpace,
                            Kokkos::IndexType<size_t>>;
@@ -34,10 +34,13 @@ double k_mat_nn(size_t iterations, d_site_view a, d_su3_matrix_view b,
     team_policy policy(blocksPerGrid, threadsPerBlock);
 
     Kokkos::Timer start;
+    auto tprofiling = Clock::now();
+
     for (size_t iters = 0; iters < iterations + warmups; ++iters) {
         if (iters == warmups) {
             Kokkos::fence();
             start.reset();
+            tprofiling = Clock::now();
         }
         Kokkos::parallel_for(
             "k_mat_nn", policy, KOKKOS_LAMBDA(const member_type &team) {
@@ -58,6 +61,7 @@ double k_mat_nn(size_t iterations, d_site_view a, d_su3_matrix_view b,
         Kokkos::fence();
     }
 
+    profile->kernel_time = (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
     return (start.seconds());
 }
 
@@ -85,12 +89,12 @@ double su3_mat_nn(h_site_view &a, h_su3_matrix_view &b, h_site_view &c,
     Kokkos::deep_copy(d_b, b);
 
     profile->h2d_time = (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
-    tprofiling = Clock::now();
+    //tprofiling = Clock::now();
 
     k_mat_nn(iterations, d_a, d_b, d_c, total_sites,
-             blocksPerGrid, threadsPerBlock);
+             blocksPerGrid, threadsPerBlock, profile);
 
-    profile->kernel_time = (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
+    //profile->kernel_time = (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
     tprofiling = Clock::now();
 
     Kokkos::deep_copy(c, d_c);
