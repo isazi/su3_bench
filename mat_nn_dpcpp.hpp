@@ -6,14 +6,8 @@
 // Sycl requires that kernels be named
 class k_mat_nn;
 
-typedef struct{
-	double d2h_time;
-	double kernel_time;
-	double h2d_time;
-} Profile;
-
 double su3_mat_nn(const std::vector<site> &a, const std::vector<su3_matrix> &b, std::vector<site> &c, 
-		  const size_t total_sites, const size_t iterations, size_t wgsize, const int target, Profile* profile)
+              const size_t total_sites, const size_t iterations, size_t wgsize, const int target)
 { 
   // build a list of devices
   std::vector<sycl::platform> platforms = sycl::platform::get_platforms();
@@ -52,9 +46,6 @@ double su3_mat_nn(const std::vector<site> &a, const std::vector<su3_matrix> &b, 
 
   std::cout << std::flush;
 
-  auto tstart = Clock::now();
-  auto tprofiling = tstart;
-
   // allocate device memory
   site*       d_a = (site*)       malloc_device(total_sites * sizeof(site), queue);
   su3_matrix* d_b = (su3_matrix*) malloc_device(4 * sizeof(su3_matrix), queue);
@@ -68,9 +59,6 @@ double su3_mat_nn(const std::vector<site> &a, const std::vector<su3_matrix> &b, 
   queue.memcpy(d_a, a.data(), a.size() * sizeof(site));
   queue.memcpy(d_b, b.data(), b.size() * sizeof(su3_matrix));
   queue.wait();
-
-  profile->h2d_time = (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
-  tprofiling = Clock::now();
 
   // benchmark loop
   for (size_t iters=0; iters<iterations+warmups; ++iters) {
@@ -108,16 +96,11 @@ double su3_mat_nn(const std::vector<site> &a, const std::vector<su3_matrix> &b, 
   queue.wait();
   } // end of iteration loop
 
-  profile->kernel_time = (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
-  tprofiling = Clock::now();
+  double ttotal = std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tstart).count();
 
   // Move the result back to the host side vector
   queue.memcpy(c.data(), d_c, c.size() * sizeof(site));
   queue.wait();
-
-  profile->d2h_time= (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
-
-  double ttotal = std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tstart).count();
 
   free(d_a, queue);
   free(d_b, queue);
