@@ -46,8 +46,7 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
   auto tstart = Clock::now();
   auto tprofiling = tstart;
 
-  #pragma omp target data map(to: d_a[0:len_a], d_b[0:len_b]) map(from: d_c[0:len_c])
-  {  // begin OpenMP block
+  #pragma omp target enter data map(to: d_a[0:len_a], d_b[0:len_b])   // begin OpenMP block
   profile->h2d_time = (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
 
   // benchmark loop
@@ -187,7 +186,7 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
     }
   }
   profile->kernel_time = (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
-  tprofiling = Clock::now();
+  
 
 #else // VERSION == 3 || VERSION == 4
   // Baseline implementation
@@ -251,7 +250,9 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
   }
 
 #endif
-  } // end of OpenMP block, C gets moved back to the host
+  tprofiling = Clock::now();
+
+  #pragma omp target exit data map(from: d_c[0:len_c]) // end of OpenMP block, C gets moved back to the host
 
   ttotal = std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tstart).count();
   profile->d2h_time = (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
