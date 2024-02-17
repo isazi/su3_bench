@@ -67,7 +67,8 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
   for (int iters=0; iters<iterations+warmups; ++iters) {
     if (iters == warmups)
       tstart = Clock::now();
-    #pragma omp target teams distribute num_teams(num_teams) thread_limit(threads_per_team)
+
+    #pragma omp target teams distribute
     for(int i=0;i<total_sites;++i) {
       #pragma omp parallel for collapse(3)
       for (int j=0; j<4; ++j) {
@@ -103,7 +104,8 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
   for (int iters=0; iters<iterations+warmups; ++iters) {
     if (iters == warmups)
       tstart = Clock::now();
-    #pragma omp target teams num_teams(num_teams) thread_limit(threads_per_team)
+
+    #pragma omp target teams 
     {
       #pragma omp parallel
       {
