@@ -229,7 +229,7 @@ int main(int argc, char **argv)
   // benchmark call
   const double ttotal = su3_mat_nn(a, b, c, total_sites, iterations, threads_per_group, device, &profile);
   if (verbose >= 1) {
-    //printf("Total execution time = %f secs\n", ttotal);
+    printf("Total execution time = %f secs\n", ttotal);
     printf("h2d: %fs, kernel: %fs, d2h: %fs\n",
 	       profile.h2d_time,
 	       profile.kernel_time,
@@ -271,18 +271,6 @@ int main(int argc, char **argv)
     #endif
   }
 
-<<<<<<< HEAD
-=======
-#ifdef USE_RAJA
-  //a.free();
-  //b.free();
-  //c.free();
-  cpu_pool.deallocate(a);
-  cpu_pool.deallocate(b);
-  cpu_pool.deallocate(c);
-#endif
-
->>>>>>> f7aadc6 (raja wip)
   // check memory usage
   if (verbose >= 2) {
     printf("Total allocation for matrices = %.3f MiB\n", memory_usage / 1048576.0);
