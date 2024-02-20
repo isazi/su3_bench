@@ -52,8 +52,7 @@ double su3_mat_nn(const std::vector<site> &a, const std::vector<su3_matrix> &b, 
 
   std::cout << std::flush;
 
-  auto tstart = Clock::now();
-  auto tprofiling = tstart;
+  auto tprofiling = Clock::now();
 
   // allocate device memory
   site*       d_a = (site*)       malloc_device(total_sites * sizeof(site), queue);
@@ -70,9 +69,10 @@ double su3_mat_nn(const std::vector<site> &a, const std::vector<su3_matrix> &b, 
   queue.wait();
 
   profile->h2d_time = (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
-  tprofiling = Clock::now();
 
   // benchmark loop
+  auto tstart = Clock::now();
+  auto tprofiling = tstart;
   for (size_t iters=0; iters<iterations+warmups; ++iters) {
     if (iters == warmups) {
       queue.wait();
@@ -108,16 +108,14 @@ double su3_mat_nn(const std::vector<site> &a, const std::vector<su3_matrix> &b, 
   queue.wait();
   } // end of iteration loop
 
+  double ttotal = std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tstart).count();
   profile->kernel_time = (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
-  tprofiling = Clock::now();
 
   // Move the result back to the host side vector
+  tprofiling = Clock::now();
   queue.memcpy(c.data(), d_c, c.size() * sizeof(site));
   queue.wait();
-
   profile->d2h_time= (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
-
-  double ttotal = std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tstart).count();
 
   free(d_a, queue);
   free(d_b, queue);
