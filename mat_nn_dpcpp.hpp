@@ -72,7 +72,7 @@ double su3_mat_nn(const std::vector<site> &a, const std::vector<su3_matrix> &b, 
 
   // benchmark loop
   auto tstart = Clock::now();
-  auto tprofiling = tstart;
+  tprofiling = tstart;
   for (size_t iters=0; iters<iterations+warmups; ++iters) {
     if (iters == warmups) {
       queue.wait();
