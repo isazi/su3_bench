@@ -17,7 +17,6 @@ typedef struct{
 	double h2d_time;
 } Profile;
 
-Kokkos::Timer start;
 //
 //*******************  m_mat_nn.c  (in su3.a) ****************************
 //  void mult_su3_nn( su3_matrix *a,*b,*c )
@@ -35,7 +34,6 @@ double k_mat_nn(size_t iterations, d_site_view a, d_su3_matrix_view b,
 
     Kokkos::Timer start;
     auto tprofiling = Clock::now();
-
     for (size_t iters = 0; iters < iterations + warmups; ++iters) {
         if (iters == warmups) {
             Kokkos::fence();
@@ -78,7 +76,6 @@ double su3_mat_nn(h_site_view &a, h_su3_matrix_view &b, h_site_view &c,
         printf("Device number set to %d\n", use_device);
     }
 
-    start.reset();
     auto tprofiling = Clock::now();
 
     d_site_view d_a("d_a", total_sites);
@@ -89,18 +86,13 @@ double su3_mat_nn(h_site_view &a, h_su3_matrix_view &b, h_site_view &c,
     Kokkos::deep_copy(d_b, b);
 
     profile->h2d_time = (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
-    //tprofiling = Clock::now();
 
-    k_mat_nn(iterations, d_a, d_b, d_c, total_sites,
-             blocksPerGrid, threadsPerBlock, profile);
+    double ttotal = k_mat_nn(iterations, d_a, d_b, d_c, total_sites,
+			     blocksPerGrid, threadsPerBlock, profile);
 
-    //profile->kernel_time = (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
     tprofiling = Clock::now();
-
     Kokkos::deep_copy(c, d_c);
-
     profile->d2h_time = (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
-    double ttotal = start.seconds();
 
     return ttotal;
 }
