@@ -16,8 +16,7 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
   d_b = b.data(); len_b = b.size();
   d_c = c.data(); len_c = c.size();
 
-  auto tstart = Clock::now();
-  auto tprofiling = tstart;
+  auto tprofiling = Clock::now();
 
   // Move A, B and C vectors to the device
   #pragma acc enter data copyin(d_a[0:len_a], d_b[0:len_b], d_c[0:len_c])
@@ -25,29 +24,28 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
   profile->h2d_time = (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
 
   // benchmark loop
-  tprofiling = Clock::now();
-
+  auto tstart = Clock::now();
+  tprofiling = tstart;
   for (int iters=0; iters<iterations+warmups; ++iters) {
     if (iters == warmups) {
       tstart = Clock::now();
-      tprofiling = Clock::now();
+      tprofiling = tstart;
     }
-
     #pragma acc parallel loop gang present(d_a[0:len_a], d_b[0:len_b], d_c[0:len_c])
     for(int i=0;i<total_sites;++i) {
-      #pragma acc loop worker vector collapse(3) present(d_a[0:len_a], d_b[0:len_b], d_c[0:len_c])
+      #pragma acc loop worker vector collapse(3)
       for (int j=0; j<4; ++j) {
         for(int k=0;k<3;k++) {
           for(int l=0;l<3;l++){
 	    Complx cc = {0.0, 0.0};
 #ifndef MILC_COMPLEX
-            #pragma acc loop seq present(d_a[0:len_a], d_b[0:len_b], d_c[0:len_c])
+            #pragma acc loop seq
             for(int m=0;m<3;m++) {
                cc += d_a[i].link[j].e[k][m] * d_b[j].e[m][l];
             }
             d_c[i].link[j].e[k][l] = cc;
 #else
-            #pragma acc loop seq present(d_a[0:len_a], d_b[0:len_b], d_c[0:len_c])
+            #pragma acc loop seq
             for(int m=0;m<3;m++) {
                CMULSUM(d_a[i].link[j].e[k][m], d_b[j].e[m][l], cc);
             }
@@ -59,15 +57,13 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
       }
     }
   }
-
-  profile->kernel_time = (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
-  tprofiling = Clock::now();
-
-  // move the result back 
-  #pragma acc exit data copyout(d_c[0:len_c])
-
-  profile->d2h_time = (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
   double ttotal = std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tstart).count();
+  profile->kernel_time = (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
+
+  // move the result back
+  tprofiling = Clock::now();
+  #pragma acc exit data copyout(d_c[0:len_c])
+  profile->d2h_time = (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
 
   return (ttotal /= 1.0e6);
 }
