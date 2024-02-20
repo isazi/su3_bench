@@ -154,6 +154,7 @@ int main(int argc, char **argv)
   size_t ldim = LDIM;
   size_t threads_per_group = 128; // nominally works well across implementations
   int device = -1;                // Let implementation choose the device
+
   std::string csv_filename = "";
 
   int opt;
@@ -212,14 +213,8 @@ int main(int argc, char **argv)
   first_touch(a.data(), b.data(), c.data(), total_sites);
 #endif
 
-  // initialize the lattices
-#ifdef USE_RAJA
-  make_lattice(a, ldim, Complx{1.0,0.0});
-  init_link(b, Complx{1.0/3.0,0.0});
-#else
   make_lattice(a.data(), ldim, Complx{1.0,0.0});
   init_link(b.data(), Complx{1.0/3.0,0.0});
-#endif
 
   if (verbose >= 1) {
     printf("Number of sites = %zu^4\n", ldim);
@@ -240,11 +235,7 @@ int main(int argc, char **argv)
   const double tflop = (double)total_sites * 864.0;
   printf("Total GFLOP/s = %.3f\n", iterations * tflop / ttotal / 1.0e9);
 
-#ifdef USE_RAJA
-  const double memory_usage = (double)sizeof(site) * (total_sites * 2) + sizeof(su3_matrix) * 4;
-#else
   const double memory_usage = (double)sizeof(site) * (a.size() + c.size()) + sizeof(su3_matrix) * b.size();
-#endif
   printf("Total GByte/s (GPU memory)  = %.3f\n", iterations * memory_usage / ttotal / 1.0e9);
   fflush(stdout);
 
