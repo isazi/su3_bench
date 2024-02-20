@@ -114,7 +114,7 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
     if (iters == warmups) {
       cudaDeviceSynchronize();
       tstart = Clock::now();
-      tprofiling = Clock::now();
+      tprofiling = tstart;
     }
     k_mat_nn<<<blocksPerGrid, threadsPerBlock>>>(d_a, d_b, d_c, total_sites);
   }

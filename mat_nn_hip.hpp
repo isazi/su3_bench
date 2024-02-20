@@ -84,8 +84,7 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
     printf("Using device %d: %s\n", use_device, device_prop.name);
   }
 
-  auto tstart = Clock::now();
-  auto tprofiling = tstart;
+  auto tprofiling = Clock::now();
 
   // Declare target storage and copy A and B
   hipError_t cuErr;
@@ -111,27 +110,26 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
   }
 
   // benchmark loop
-  tprofiling = Clock::now();
+  auto tstart = Clock::now();
+  tprofiling = tstart;
 
   for (int iters=0; iters<iterations+warmups; ++iters) {
     if (iters == warmups) {
       hipDeviceSynchronize();
       tstart = Clock::now();
-      tprofiling = Clock::now();
+      tprofiling = tstart;
     }
     hipLaunchKernelGGL(k_mat_nn, dim3(blocksPerGrid), dim3(threadsPerBlock), 0, 0, d_a, d_b, d_c, total_sites);
   }
   hipDeviceSynchronize();
-  CUCHECK(hipGetLastError(), "k_mat_nn kernel Failed");
-
   profile->kernel_time = (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
+  double ttotal = std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tstart).count();
+  CUCHECK(hipGetLastError(), "k_mat_nn kernel Failed");
 
   // copy data back from device
   tprofiling = Clock::now();
   hipMemcpy(c.data(), d_c, size_c, hipMemcpyDeviceToHost);
-
   profile->d2h_time= (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
-  double ttotal = std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tstart).count();
 
   // Deallocate
   hipFree(d_a);
