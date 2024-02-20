@@ -2,12 +2,6 @@
 #include "umpire/Allocator.hpp"
 #include "umpire/ResourceManager.hpp"
 
-typedef struct{
-	double d2h_time;
-	double kernel_time;
-	double h2d_time;
-} Profile;
-
 #define THREADS_PER_SITE 36
 
 #if defined(RAJA_ENABLE_CUDA)
@@ -99,13 +93,11 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
         });
       });
   }
-  double ttotal = std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tstart).count();
   profile->kernel_time = (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
+  double ttotal = std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tstart).count();
 
   tprofiling = Clock::now();
-
   rm.copy(c.data(), d_c);
-
   profile->d2h_time = (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
 
   return (ttotal /= 1.0e6);
