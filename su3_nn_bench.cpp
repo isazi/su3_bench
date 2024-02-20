@@ -213,6 +213,7 @@ int main(int argc, char **argv)
   first_touch(a.data(), b.data(), c.data(), total_sites);
 #endif
 
+  // initialize the lattices
   make_lattice(a.data(), ldim, Complx{1.0,0.0});
   init_link(b.data(), Complx{1.0/3.0,0.0});
 
