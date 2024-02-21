@@ -153,7 +153,11 @@ int main(int argc, char **argv)
   size_t iterations = ITERATIONS;
   size_t ldim = LDIM;
   size_t threads_per_group = 128; // nominally works well across implementations
+#ifdef USE_DPCPP
+  int device = 0;                 // DPCPP seg faults when device not provided
+#else
   int device = -1;                // Let implementation choose the device
+#endif
 
   std::string csv_filename = "";
 
