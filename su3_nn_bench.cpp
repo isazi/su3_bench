@@ -227,20 +227,20 @@ int main(int argc, char **argv)
   if (verbose >= 1) {
     printf("Total execution time = %f secs\n", ttotal);
     printf("host_to_device_ms,kernel_ms,device_to_host_ms,num_iterations,num_warmups\n");
-    printf("%f,%f,%f,%d,%d\n",
-           profile.h2d_time*1000,
+    printf("%f,%f,%f,%lu,%lu\n",
+           profile.host_to_device_time*1000,
            profile.kernel_time*1000,
-           profile.d2h_time*1000,
+           profile.device_to_host_time*1000,
            iterations,
            warmups);
   }
   if (csv_filename != "") {
     FILE* output = fopen(csv_filename.c_str(), "w");
     fprintf(output, "host_to_device_ms,kernel_ms,device_to_host_ms,num_iterations,num_warmups\n");
-    fprintf(output, "%f,%f,%f,%d,%d\n",
-            profile.h2d_time*1000,
+    fprintf(output, "%f,%f,%f,%lu,%lu\n",
+            profile.host_to_device_time*1000,
             profile.kernel_time*1000,
-            profile.d2h_time*1000,
+            profile.device_to_host_time*1000,
             iterations,
             warmups);
     fclose(output);

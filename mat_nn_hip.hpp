@@ -9,12 +9,6 @@
 
 #define THREADS_PER_SITE 36
 
-typedef struct{
-	double d2h_time;
-	double kernel_time;
-	double h2d_time;
-} Profile;
-
 //*******************  m_mat_nn.c  (in su3.a) ****************************
 //  void mult_su3_nn( su3_matrix *a,*b,*c )
 //  matrix multiply, no adjoints 
@@ -99,7 +93,7 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
   hipMemcpy(d_a, a.data(), size_a, hipMemcpyHostToDevice);
   hipMemcpy(d_b, b.data(), size_b, hipMemcpyHostToDevice);
 
-  profile->h2d_time = (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
+  profile->host_to_device_time = (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
 
   double sitesPerBlock = (double)threadsPerBlock / THREADS_PER_SITE;
   blocksPerGrid = total_sites/sitesPerBlock + 0.999999;
@@ -129,7 +123,7 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
   // copy data back from device
   tprofiling = Clock::now();
   hipMemcpy(c.data(), d_c, size_c, hipMemcpyDeviceToHost);
-  profile->d2h_time= (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
+  profile->device_to_host_time= (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
 
   // Deallocate
   hipFree(d_a);

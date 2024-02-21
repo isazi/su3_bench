@@ -8,12 +8,6 @@
   #define USE_VERSION 2
 #endif
 
-typedef struct{
-	double d2h_time;
-	double kernel_time;
-	double h2d_time;
-} Profile;
-
 double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<site> &c,
 		  size_t total_sites, size_t iterations, size_t threads_per_team, int use_device, Profile* profile)
 {
@@ -44,7 +38,7 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
   double ttotal;
   auto tprofiling = Clock::now();
   #pragma omp target enter data map(to: d_a[0:len_a], d_b[0:len_b]) map(alloc: d_c[0:len_c])
-  profile->h2d_time = (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
+  profile->host_to_device_time = (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
 
   // benchmark loop
   auto tstart = Clock::now();
@@ -259,7 +253,7 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
   // C gets moved back to the host
   tprofiling = Clock::now();
   #pragma omp target exit data map(from: d_c[0:len_c])
-  profile->d2h_time = (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
+  profile->device_to_host_time = (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
 
   // It is not possible to check for NaNs when the application is compiled with -ffast-math
   // Therefore we print out the calculated checksum as a manual check for the user.

@@ -6,12 +6,6 @@
 // Sycl requires that kernels be named
 class k_mat_nn;
 
-typedef struct{
-	double d2h_time;
-	double kernel_time;
-	double h2d_time;
-} Profile;
-
 double su3_mat_nn(const std::vector<site> &a, const std::vector<su3_matrix> &b, std::vector<site> &c, 
 		  const size_t total_sites, const size_t iterations, size_t wgsize, const int target, Profile* profile)
 { 
@@ -68,7 +62,7 @@ double su3_mat_nn(const std::vector<site> &a, const std::vector<su3_matrix> &b, 
   queue.memcpy(d_b, b.data(), b.size() * sizeof(su3_matrix));
   queue.wait();
 
-  profile->h2d_time = (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
+  profile->host_to_device_time = (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
 
   // benchmark loop
   auto tstart = Clock::now();
@@ -77,7 +71,7 @@ double su3_mat_nn(const std::vector<site> &a, const std::vector<su3_matrix> &b, 
     if (iters == warmups) {
       queue.wait();
       tstart = Clock::now();
-      auto tprofiling = tstart;
+      tprofiling = tstart;
     }
 
     // create a command_group to issue commands
@@ -115,7 +109,7 @@ double su3_mat_nn(const std::vector<site> &a, const std::vector<su3_matrix> &b, 
   tprofiling = Clock::now();
   queue.memcpy(c.data(), d_c, c.size() * sizeof(site));
   queue.wait();
-  profile->d2h_time= (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
+  profile->device_to_host_time= (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
 
   free(d_a, queue);
   free(d_b, queue);

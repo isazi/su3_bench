@@ -18,12 +18,6 @@
   using threads_z = RAJA::LoopPolicy<RAJA::hip_thread_z_direct>;
 #endif
 
-typedef struct{
-	double d2h_time;
-	double kernel_time;
-	double h2d_time;
-} Profile;
-
 double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<site> &c, size_t total_sites, size_t iterations, size_t threadsPerBlock, int device, Profile* profile) {
   size_t size_a = sizeof(site) * total_sites;
   size_t size_b = sizeof(su3_matrix) * 4;
@@ -55,7 +49,7 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
   rm.copy(d_b, b.data());
   rm.copy(d_c, c.data());
 
-  profile->h2d_time = (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
+  profile->host_to_device_time = (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
 
   constexpr int threads_per_side = 4 * 3 * 3;
   constexpr int threads_per_block = 256;
@@ -98,7 +92,7 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
 
   tprofiling = Clock::now();
   rm.copy(c.data(), d_c);
-  profile->d2h_time = (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
+  profile->device_to_host_time = (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
 
   return (ttotal /= 1.0e6);
 }

@@ -1,11 +1,5 @@
 // OpenACC implementation
 
-typedef struct{
-	double d2h_time;
-	double kernel_time;
-	double h2d_time;
-} Profile;
-
 double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<site> &c, 
 		  size_t total_sites, size_t iterations, size_t threads_per_team, int use_device, Profile* profile)
 {
@@ -21,7 +15,7 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
   // Move A, B and C vectors to the device
   #pragma acc enter data copyin(d_a[0:len_a], d_b[0:len_b], d_c[0:len_c])
 
-  profile->h2d_time = (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
+  profile->host_to_device_time = (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
 
   // benchmark loop
   auto tstart = Clock::now();
@@ -63,7 +57,7 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
   // move the result back
   tprofiling = Clock::now();
   #pragma acc exit data copyout(d_c[0:len_c])
-  profile->d2h_time = (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
+  profile->device_to_host_time = (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
 
   return (ttotal /= 1.0e6);
 }

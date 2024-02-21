@@ -11,12 +11,6 @@ using d_su3_matrix_view = Kokkos::View<su3_matrix *, ExecSpace>;
 using h_site_view = Kokkos::View<site *, HostExecSpace>;
 using h_su3_matrix_view = Kokkos::View<su3_matrix *, HostExecSpace>;
 
-typedef struct{
-	double d2h_time;
-	double kernel_time;
-	double h2d_time;
-} Profile;
-
 //
 //*******************  m_mat_nn.c  (in su3.a) ****************************
 //  void mult_su3_nn( su3_matrix *a,*b,*c )
@@ -85,14 +79,14 @@ double su3_mat_nn(h_site_view &a, h_su3_matrix_view &b, h_site_view &c,
     Kokkos::deep_copy(d_a, a);
     Kokkos::deep_copy(d_b, b);
 
-    profile->h2d_time = (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
+    profile->host_to_device_time = (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
 
     double ttotal = k_mat_nn(iterations, d_a, d_b, d_c, total_sites,
 			     blocksPerGrid, threadsPerBlock, profile);
 
     tprofiling = Clock::now();
     Kokkos::deep_copy(c, d_c);
-    profile->d2h_time = (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
+    profile->device_to_host_time = (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
 
     return ttotal;
 }
