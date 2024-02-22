@@ -72,9 +72,9 @@ double su3_mat_nn(h_site_view &a, h_su3_matrix_view &b, h_site_view &c,
 
     auto tprofiling = Clock::now();
 
-    d_site_view d_a("d_a", total_sites);
-    d_site_view d_c("d_c", total_sites);
-    d_su3_matrix_view d_b("d_b", 4);
+    d_site_view d_a(Kokkos::ViewAllocateWithoutInitializing("d_a"), total_sites);
+    d_site_view d_c(Kokkos::ViewAllocateWithoutInitializing("d_c"), total_sites);
+    d_su3_matrix_view d_b(Kokkos::ViewAllocateWithoutInitializing("d_b"), 4);
 
     Kokkos::deep_copy(d_a, a);
     Kokkos::deep_copy(d_b, b);
