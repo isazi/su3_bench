@@ -149,10 +149,15 @@ void make_lattice(site *s, size_t n, Complx val) {
 // Main
 int main(int argc, char **argv)
 {
+  Profile profile;
   size_t iterations = ITERATIONS;
   size_t ldim = LDIM;
   size_t threads_per_group = 128; // nominally works well across implementations
+#ifdef USE_DPCPP
+  int device = 0;                 // DPCPP seg faults when device not provided
+#else
   int device = -1;                // Let implementation choose the device
+#endif
 
   std::string csv_filename = "";
 
@@ -222,9 +227,28 @@ int main(int argc, char **argv)
   }
 
   // benchmark call
-  const double ttotal = su3_mat_nn(a, b, c, total_sites, iterations, threads_per_group, device);
-  if (verbose >= 1)
+  const double ttotal = su3_mat_nn(a, b, c, total_sites, iterations, threads_per_group, device, &profile);
+  if (verbose >= 1) {
     printf("Total execution time = %f secs\n", ttotal);
+    printf("host_to_device_ms,kernel_ms,device_to_host_ms,num_iterations,num_warmups\n");
+    printf("%f,%f,%f,%lu,%lu\n",
+           profile.host_to_device_time*1000,
+           profile.kernel_time*1000,
+           profile.device_to_host_time*1000,
+           iterations,
+           warmups);
+  }
+  if (csv_filename != "") {
+    FILE* output = fopen(csv_filename.c_str(), "w");
+    fprintf(output, "host_to_device_ms,kernel_ms,device_to_host_ms,num_iterations,num_warmups\n");
+    fprintf(output, "%f,%f,%f,%lu,%lu\n",
+            profile.host_to_device_time*1000,
+            profile.kernel_time*1000,
+            profile.device_to_host_time*1000,
+            iterations,
+            warmups);
+    fclose(output);
+  }
   // calculate flops/s, etc.
   // each matrix multiply is (3*3)*4*(12 mult + 12 add) = 4*(108 mult + 108 add) = 4*216 ops
   const double tflop = (double)total_sites * 864.0;

@@ -7,7 +7,7 @@
 class k_mat_nn;
 
 double su3_mat_nn(const std::vector<site> &a, const std::vector<su3_matrix> &b, std::vector<site> &c, 
-              const size_t total_sites, const size_t iterations, size_t wgsize, const int target)
+		  const size_t total_sites, const size_t iterations, size_t wgsize, const int target, Profile* profile)
 { 
   // build a list of devices
   std::vector<sycl::platform> platforms = sycl::platform::get_platforms();
@@ -46,6 +46,8 @@ double su3_mat_nn(const std::vector<site> &a, const std::vector<su3_matrix> &b, 
 
   std::cout << std::flush;
 
+  auto tprofiling = Clock::now();
+
   // allocate device memory
   site*       d_a = (site*)       malloc_device(total_sites * sizeof(site), queue);
   su3_matrix* d_b = (su3_matrix*) malloc_device(4 * sizeof(su3_matrix), queue);
@@ -60,13 +62,17 @@ double su3_mat_nn(const std::vector<site> &a, const std::vector<su3_matrix> &b, 
   queue.memcpy(d_b, b.data(), b.size() * sizeof(su3_matrix));
   queue.wait();
 
+  profile->host_to_device_time = (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
+
   // benchmark loop
   auto tstart = Clock::now();
+  tprofiling = tstart;
   for (size_t iters=0; iters<iterations+warmups; ++iters) {
     if (iters == warmups) {
       queue.wait();
       tstart = Clock::now();
-	  }
+      tprofiling = tstart;
+    }
 
     // create a command_group to issue commands
     queue.submit([&](sycl::handler& cgh) {
@@ -97,10 +103,13 @@ double su3_mat_nn(const std::vector<site> &a, const std::vector<su3_matrix> &b, 
   } // end of iteration loop
 
   double ttotal = std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tstart).count();
+  profile->kernel_time = (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
 
   // Move the result back to the host side vector
+  tprofiling = Clock::now();
   queue.memcpy(c.data(), d_c, c.size() * sizeof(site));
   queue.wait();
+  profile->device_to_host_time= (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
 
   free(d_a, queue);
   free(d_b, queue);
@@ -108,4 +117,3 @@ double su3_mat_nn(const std::vector<site> &a, const std::vector<su3_matrix> &b, 
 
   return (ttotal /= 1.0e6);
 } // end of SYCL block
-

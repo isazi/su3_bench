@@ -8,8 +8,8 @@
   #define USE_VERSION 2
 #endif
 
-double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<site> &c, 
-              size_t total_sites, size_t iterations, size_t threads_per_team, int use_device)
+double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<site> &c,
+		  size_t total_sites, size_t iterations, size_t threads_per_team, int use_device, Profile* profile)
 {
   size_t num_teams = NUM_TEAMS;
 
@@ -36,11 +36,13 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
  
   // Move A and B data to the device, Allocate C data
   double ttotal;
-  #pragma omp target data map(to: d_a[0:len_a], d_b[0:len_b]) map(from: d_c[0:len_c])
-  {  // begin OpenMP block
+  auto tprofiling = Clock::now();
+  #pragma omp target enter data map(to: d_a[0:len_a], d_b[0:len_b]) map(alloc: d_c[0:len_c])
+  profile->host_to_device_time = (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
 
   // benchmark loop
   auto tstart = Clock::now();
+  tprofiling = tstart;
 #if USE_VERSION == 0
   // Baseline implementation
 	// Original intent is to have teams process whole sites, 
@@ -54,9 +56,12 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
   }
 
   for (int iters=0; iters<iterations+warmups; ++iters) {
-    if (iters == warmups)
+    if (iters == warmups) {
       tstart = Clock::now();
-    #pragma omp target teams distribute num_teams(num_teams) thread_limit(threads_per_team)
+      tprofiling = tstart;
+    }
+
+    #pragma omp target teams distribute
     for(int i=0;i<total_sites;++i) {
       #pragma omp parallel for collapse(3)
       for (int j=0; j<4; ++j) {
@@ -90,9 +95,12 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
   }
 
   for (int iters=0; iters<iterations+warmups; ++iters) {
-    if (iters == warmups)
+    if (iters == warmups) {
       tstart = Clock::now();
-    #pragma omp target teams num_teams(num_teams) thread_limit(threads_per_team)
+      tprofiling = tstart;
+    }
+
+    #pragma omp target teams 
     {
       #pragma omp parallel
       {
@@ -143,9 +151,12 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
   }
 
   for (int iters=0; iters<iterations+warmups; ++iters) {
-    if (iters == warmups)
+    if (iters == warmups) {
       tstart = Clock::now();
-    #pragma omp target teams distribute parallel for num_teams(num_teams)  thread_limit(threads_per_team)
+      tprofiling = tstart;
+    }
+
+    #pragma omp target teams distribute parallel for
     for (int id =0; id < num_work_items; id++) {
       int i = id/36;
       if (i < total_sites) {
@@ -191,8 +202,11 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
   }
 
   for (int iters=0; iters<iterations+warmups; ++iters) {
-    if (iters == warmups)
+    if (iters == warmups) {
       tstart = Clock::now();
+      tprofiling = tstart;
+    }
+
 #if USE_VERSION == 3
   #ifdef NOTARGET
     #pragma omp parallel for schedule(static)
@@ -233,8 +247,13 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
 
 #endif
 
+  profile->kernel_time = (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
   ttotal = std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tstart).count();
-  } // end of OpenMP block, C gets moved back to the host
+
+  // C gets moved back to the host
+  tprofiling = Clock::now();
+  #pragma omp target exit data map(from: d_c[0:len_c])
+  profile->device_to_host_time = (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
 
   // It is not possible to check for NaNs when the application is compiled with -ffast-math
   // Therefore we print out the calculated checksum as a manual check for the user.

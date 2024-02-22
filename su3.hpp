@@ -2,6 +2,12 @@
 #define _SU3_HPP
 // Adapted from su3.h in MILC version 7
 
+typedef struct{
+  double device_to_host_time;
+  double kernel_time;
+  double host_to_device_time;
+} Profile;
+
 #ifdef USE_THRUST
   #include <thrust/complex.h>
   struct fsu3_matrix { thrust::complex<float> e[3][3]; } ;

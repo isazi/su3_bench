@@ -15,6 +15,12 @@ typedef struct {
    double imag;
 } dcomplex;
 
+typedef struct{
+  double device_to_host_time;
+  double kernel_time;
+  double host_to_device_time;
+} Profile;
+
 typedef struct { fcomplex e[3][3]; } fsu3_matrix;
 typedef struct { fcomplex c[3]; } fsu3_vector;
 
