@@ -1,5 +1,5 @@
 #
-# COMPILER = icpc | icx | gcc | nvc++ | clang (default)
+# COMPILER = icpc | icx | g++ (default) | nvc++ | clang
 # 
 # VERSION = 0 | 1 | 2 | 3 | 4 | 5
 ifndef VERSION
@@ -22,8 +22,8 @@ else ifeq ($(COMPILER),icx)
   CFLAGS = -O3 -ansi-alias -ipo -unroll -finline -qopt-zmm-usage=high
   CFLAGS += -fiopenmp
   DEFINES += -DMILC_COMPLEX
-else ifeq ($(COMPILER),g++)
-  CC = g++
+else ifeq ($(COMPILER),clang)
+  CC = clang++
   CFLAGS = -O3
   CFLAGS += -fopenmp
   DEFINES += -DMILC_COMPLEX
@@ -32,7 +32,7 @@ else ifeq ($(COMPILER),nvc++)
   CFLAGS = -fast -mp=multicore -Minfo=accel,mp
   DEFINES += -DMILC_COMPLEX
 else
-  CC = clang++
+  CC = g++
   CFLAGS = -O3
   CFLAGS += -fopenmp
   DEFINES += -DMILC_COMPLEX
