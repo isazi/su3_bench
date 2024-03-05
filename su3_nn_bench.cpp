@@ -253,10 +253,6 @@ int main(int argc, char **argv)
   // each matrix multiply is (3*3)*4*(12 mult + 12 add) = 4*(108 mult + 108 add) = 4*216 ops
   const double tflop = (double)total_sites * 864.0;
   printf("Total GFLOP/s = %.3f\n", iterations * tflop / ttotal / 1.0e9);
-  if ( profile.kernel_time > 0 ) {
-    printf("Kernel GFLOP/s = %.3f\n",
-           iterations * tflop / profile.kernel_time / 1.0e9);
-  }
 
   const double memory_usage = (double)sizeof(site) * (a.size() + c.size()) + sizeof(su3_matrix) * b.size();
   printf("Total GByte/s (GPU memory)  = %.3f\n", iterations * memory_usage / ttotal / 1.0e9);
