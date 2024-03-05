@@ -38,13 +38,13 @@ else
   DEFINES += -DMILC_COMPLEX
 endif 
 
-bench_f32_openmp.exe: su3_nn_bench.cpp $(DEPENDS)
+bench_f32_openmp_cpu.exe: su3_nn_bench.cpp $(DEPENDS)
 	$(CC) $(CFLAGS) -DPRECISION=1 $(DEFINES) -o $@ su3_nn_bench.cpp $(LIBS)
 
-bench_f64_openmp.exe: su3_nn_bench.cpp $(DEPENDS)
+bench_f64_openmp_cpu.exe: su3_nn_bench.cpp $(DEPENDS)
 	$(CC) $(CFLAGS) $(DEFINES) -o $@ su3_nn_bench.cpp $(LIBS)
 
-all: bench_f64_openmp.exe bench_f32_openmp.exe
+all: bench_f64_openmp_cpu.exe bench_f32_openmp_cpu.exe
 
 clean:
 	rm -f *openmp.exe
