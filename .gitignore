@@ -2,3 +2,5 @@
 *.exe
 *tmp*
 build*
+cmake-*
+.idea
