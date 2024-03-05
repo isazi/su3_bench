@@ -47,4 +47,4 @@ bench_f64_openmp_cpu.exe: su3_nn_bench.cpp $(DEPENDS)
 all: bench_f64_openmp_cpu.exe bench_f32_openmp_cpu.exe
 
 clean:
-	rm -f *openmp.exe
+	rm -f *openmp_cpu.exe
