@@ -1,6 +1,5 @@
-#
-CC = pgc++ -acc -ta=tesla:fastmath,cc70 # -Minfo=accel
-CFLAGS = -O3
+CC = nvc++ -acc=gpu -gpu=fastmath,cc$(ARCH) -Minfo=accel
+CFLAGS = -fast -O3
 INCLUDES = -DUSE_OPENACC
 DEPENDS = su3.hpp lattice.hpp mat_nn_openacc.hpp
 
