@@ -67,7 +67,7 @@ void first_touch(site *a, su3_matrix *b, site *c,
 }
 
 double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<site> &c, 
-		  size_t total_sites, size_t iterations, size_t threads_per_team, int use_device)
+		  size_t total_sites, size_t iterations, size_t threads_per_team, int use_device, Profile *profile)
 {
   if (verbose > 0)
     std::cout << "Number of threads = " << omp_get_max_threads() << std::endl;
