@@ -2,12 +2,7 @@
 # depends on a Cuda module being loaded
 CC = nvcc -ccbin g++ -m64 --x cu
 CFLAGS = -O3
-# ARCH = V100 | A100
-ifeq ($(ARCH),A100)
-  CFLAGS += -gencode arch=compute_80,code=sm_80
-else
-  CFLAGS += -gencode arch=compute_70,code=sm_70
-endif
+CFLAGS += -gencode arch=compute_$(ARCH),code=sm_$(ARCH)
 INCLUDES = -DUSE_CUDA #-DMILC_COMPLEX
 DEPENDS = su3.hpp lattice.hpp mat_nn_cuda.hpp
 
