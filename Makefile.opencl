@@ -1,5 +1,5 @@
 #
-# Compiler is gnu | clang
+# Compiler is g++ | clang
 CC = g++
 ifeq ($(COMPILER),clang)
   CC = clang++
