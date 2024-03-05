@@ -1,19 +1,13 @@
 #
-HIP_PLATFORM=$(shell hipconfig --platform)
-ifeq (${HIP_PLATFORM}, $(filter $(HIP_PLATFORM), nvcc nvidia))
-  # ARCH = V100 | A100
-  ifeq ($(ARCH),A100)
-    HIPCC_FLAGS = -gencode arch=compute_80,code=sm_80
-  else
-    HIPCC_FLAGS = -gencode arch=compute_70,code=sm_70
-  endif
-else
-  # ARCH = MI60 | MI100
-  ifeq ($(ARCH),MI100)
-    HIPCC_FLAGS = --offload-arch=gfx908
-  else
-    HIPCC_FLAGS = --offload-arch=gfx906
-  endif
+# Vendor can be nvidia | amd
+ifndef VENDOR
+  VENDOR = nvidia
+endif
+
+ifeq ($(VENDOR),nvidia)
+  HIPCC_FLAGS = -gencode arch=compute_$(ARCH),code=sm_$(ARCH)
+else ifeq ($(VENDOR),amd)
+  HIPCC_FLAGS = --offload-arch=gfx$(ARCH)
 endif
 
 # USE MILC Complex data types
