@@ -10,18 +10,17 @@ else ifeq ($(VENDOR),amd)
   HIPCC_FLAGS = --offload-arch=gfx$(ARCH)
 endif
 
-# USE MILC Complex data types
-#HIPCC_FLAGS += -DMILC_COMPLEX
+DEFINES = -DUSE_HIP -DMILC_COMPLEX
 
 CC = hipcc
-CFLAGS = -O3 $(HIPCC_FLAGS) -DUSE_HIP
+CFLAGS = -O3
 DEPENDS = su3.hpp lattice.hpp mat_nn_hip.hpp
 
 bench_f32_hip.exe: su3_nn_bench.cpp $(DEPENDS)
-	$(CC) $(CFLAGS) -DPRECISION=1 -o $@ su3_nn_bench.cpp $(LIBS)
+	$(CC) $(CFLAGS) $(DEFINES) -DPRECISION=1 -o $@ su3_nn_bench.cpp $(LIBS)
 
 bench_f64_hip.exe: su3_nn_bench.cpp $(DEPENDS)
-	$(CC) $(CFLAGS) -o $@ su3_nn_bench.cpp $(LIBS)
+	$(CC) $(CFLAGS) $(DEFINES) -o $@ su3_nn_bench.cpp $(LIBS)
 
 all: bench_f64_hip.exe bench_f32_hip.exe
 

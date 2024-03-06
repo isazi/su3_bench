@@ -6,7 +6,7 @@ ifeq ($(COMPILER),clang)
 endif
 CFLAGS = -O3 -fopenmp -Wno-ignored-attributes -Wno-deprecated-declarations
 LIBS = -lOpenCL
-DEFINES = -DUSE_OPENCL
+DEFINES = -DUSE_OPENCL -DMILC_COMPLEX
 DEPENDS = su3.h lattice.hpp mat_nn_opencl.hpp
 
 bench_f32_opencl.exe: su3_nn_bench.cpp $(DEPENDS)
