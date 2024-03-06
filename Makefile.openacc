@@ -1,13 +1,13 @@
-CC = nvc++ -acc=gpu -gpu=fastmath,cc$(ARCH) -Minfo=accel
-CFLAGS = -fast -O3
-INCLUDES = -DUSE_OPENACC
+CC = nvc++
+CFLAGS = -fast -O3 -acc=gpu -gpu=fastmath,cc$(ARCH) -Minfo=accel
+DEFINES = -DUSE_OPENACC -DMILC_COMPLEX
 DEPENDS = su3.hpp lattice.hpp mat_nn_openacc.hpp
 
 bench_f32_openacc.exe: su3_nn_bench.cpp $(DEPENDS)
-	$(CC) -DPRECISION=1 $(CFLAGS) $(INCLUDES) -o $@ su3_nn_bench.cpp $(LIBS)
+	$(CC) -DPRECISION=1 $(CFLAGS) $(DEFINES) -o $@ su3_nn_bench.cpp $(LIBS)
 
 bench_f64_openacc.exe: su3_nn_bench.cpp $(DEPENDS)
-	$(CC) $(CFLAGS) $(INCLUDES) -o $@ su3_nn_bench.cpp $(LIBS)
+	$(CC) $(CFLAGS) $(DEFINES) -o $@ su3_nn_bench.cpp $(LIBS)
 
 all: bench_f64_openacc.exe bench_f32_openacc.exe
 
