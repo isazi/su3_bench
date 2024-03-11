@@ -15,9 +15,7 @@ def parse_cli() -> argparse.Namespace:
         choices=range(1, 3),
         default=2,
     )
-    parser.add_argument(
-        "--milc", help="Enable MILC_COMPLEX.", type=bool, action="store_true"
-    )
+    parser.add_argument("--milc", help="Enable MILC_COMPLEX.", action="store_true")
     return parser.parse_args()
 
 
@@ -26,7 +24,7 @@ with open("../mat_nn_cuda.hpp", "r") as file:
     kernel_code = file.read()
 
 arguments = parse_cli()
-total_sites = arguments.ldim**4
+total_sites = np.int32(arguments.ldim**4)
 compiler_options = ["-I.."]
 if arguments.milc:
     compiler_options += ["-DMILC_COMPLEX"]
