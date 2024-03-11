@@ -20,6 +20,12 @@ typedef struct{
   struct fsu3_vector { Kokkos::complex<float> c[3]; } ;
   struct dsu3_matrix { Kokkos::complex<double> e[3][3]; } ;
   struct dsu3_vector { Kokkos::complex<double> c[3]; } ;
+#elif kernel_tuner
+  #include <cupy/complex.cuh>
+  struct fsu3_matrix { complex<float> e[3][3]; } ;
+  struct fsu3_vector { complex<float> c[3]; } ;
+  struct dsu3_matrix { complex<double> e[3][3]; } ;
+  struct dsu3_vector { complex<double> c[3]; } ;
 #else
   #include <complex>
   struct fsu3_matrix { std::complex<float> e[3][3]; } ;
@@ -37,6 +43,8 @@ typedef struct{
   #define Complx        thrust::complex<float>
 #elif USE_KOKKOS
   #define Complx        Kokkos::complex<float>
+#elif kernel_tuner
+  #define Complx        complex<float>
 #else
   #define Complx        std::complex<float>
 #endif
@@ -48,6 +56,8 @@ typedef struct{
   #define Complx        thrust::complex<double>
 #elif USE_KOKKOS
   #define Complx        Kokkos::complex<double>
+#elif kernel_tuner
+  #define Complx        complex<double>
 #else
   #define Complx        std::complex<double>
 #endif

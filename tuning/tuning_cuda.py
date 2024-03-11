@@ -20,12 +20,12 @@ def parse_cli() -> argparse.Namespace:
 
 
 # read CUDA code
-with open("../mat_nn_cuda.hpp", "r") as file:
+with open("../mat_nn_cuda_kernel.cu", "r") as file:
     kernel_code = file.read()
 
 arguments = parse_cli()
 total_sites = np.int32(arguments.ldim**4)
-compiler_options = ["-I.."]
+compiler_options = ["-std=c++14", "-I..", "-default-device"]
 if arguments.milc:
     compiler_options += ["-DMILC_COMPLEX"]
 if arguments.precision == 1:

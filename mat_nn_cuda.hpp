@@ -1,5 +1,6 @@
 // Cuda implementation
 #include <cuda_runtime.h>
+#include "mat_nn_cuda_kernel.cu"
 
 #define CUCHECK(err, s) \
   if (err != cudaSuccess) { \
@@ -8,34 +9,6 @@
   }
 
 #define THREADS_PER_SITE 36
-
-//*******************  m_mat_nn.c  (in su3.a) ****************************
-//  void mult_su3_nn( su3_matrix *a,*b,*c )
-//  matrix multiply, no adjoints 
-//  C  <-  A*B	
-__global__ void k_mat_nn(
-  const site*       __restrict__ a,
-  const su3_matrix* __restrict__ b,
-        site*       __restrict__ c,
-  int               total_sites)
-{
-  int myThread = blockDim.x * blockIdx.x + threadIdx.x;
-  int mySite = myThread/36;
-
-  if (mySite < total_sites) {
-    int j = (myThread%36)/9;
-    int k = (myThread%9)/3;
-    int l = myThread%3;
-    Complx cc = {0.0, 0.0};
-    for (int m=0;m<3;m++)
-#ifdef MILC_COMPLEX
-      CMULSUM(a[mySite].link[j].e[k][m], b[j].e[m][l], cc);
-#else
-      cc += a[mySite].link[j].e[k][m] * b[j].e[m][l];
-#endif
-    c[mySite].link[j].e[k][l] = cc;
-  }
-}
 
 double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<site> &c, 
 		  size_t total_sites, size_t iterations, size_t threadsPerBlock, int use_device, Profile *profile)
