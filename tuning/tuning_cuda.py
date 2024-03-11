@@ -54,5 +54,5 @@ results, _ = tune_kernel(
     args,
     tune_params,
     lang="cupy",
-    compiler_options=compiler_options
+    compiler_options=compiler_options,
 )
