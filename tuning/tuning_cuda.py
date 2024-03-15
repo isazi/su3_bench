@@ -51,8 +51,8 @@ tune_params["block_size_x"] = [32 * i for i in range(1, 33)]
 
 # metrics
 metrics = dict()
-metrics["GFLOP/s"] = lambda p : (total_sites * 864.0) / (p["time"] / 10**3) / 10**9
-metrics["GB/s"] = lambda p : (len(a) + len(c) + len(b)) / (p["time"] / 10**3) / 10**9
+metrics["GFLOP/s"] = lambda p: (total_sites * 864.0) / (p["time"] / 1000) / 10**9
+metrics["GB/s"] = lambda p: (len(a) + len(c) + len(b)) / (p["time"] / 1000) / 10**9
 
 results, _ = tune_kernel(
     "k_mat_nn",
@@ -62,5 +62,5 @@ results, _ = tune_kernel(
     tune_params,
     lang="cupy",
     compiler_options=compiler_options,
-    metrics=metrics
+    metrics=metrics,
 )
