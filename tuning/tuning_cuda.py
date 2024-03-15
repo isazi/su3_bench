@@ -16,6 +16,7 @@ def parse_cli() -> argparse.Namespace:
         default=2,
     )
     parser.add_argument("--milc", help="Enable MILC_COMPLEX.", action="store_true")
+    parser.add_argument("--path", help="Path to load data structures from.", type=str, required=True)
     return parser.parse_args()
 
 
@@ -31,7 +32,7 @@ if arguments.milc:
 if arguments.precision == 1:
     compiler_options += ["-DPRECISION=1"]
 
-# allocate memory
+# allocate memory and load
 site_size = 0
 matrix_size = 0
 if arguments.precision == 1:
@@ -40,10 +41,13 @@ if arguments.precision == 1:
 else:
     site_size = 640
     matrix_size = 576
-a = np.random.rand(total_sites * site_size).astype(np.byte)
-b = np.random.rand(matrix_size).astype(np.byte)
+a = np.fromfile(f"{arguments.path}/a_in.bin", dtype=np.byte)
+b = np.fromfile(f"{arguments.path}/b_in.bin", dtype=np.byte)
 c = np.zeros_like(a)
+c_truth = np.fromfile(f"{arguments.path}/c_out.bin", dtype=np.byte)
+
 args = [a, b, c, total_sites]
+answer = [None, None, c_truth, None]
 
 # tunable parameters
 tune_params = dict()
@@ -60,6 +64,7 @@ results, _ = tune_kernel(
     total_sites,
     args,
     tune_params,
+    answer=answer,
     lang="cupy",
     compiler_options=compiler_options,
     metrics=metrics,
