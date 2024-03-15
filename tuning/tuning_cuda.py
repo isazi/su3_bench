@@ -25,7 +25,7 @@ with open("../mat_nn_cuda_kernel.cu", "r") as file:
 
 arguments = parse_cli()
 total_sites = np.int32(arguments.ldim**4)
-compiler_options = ["-std=c++14", "-I..", "-default-device"]
+compiler_options = ["-std=c++14", "-I..", "-default-device", "-DUSE_CUDA"]
 if arguments.milc:
     compiler_options += ["-DMILC_COMPLEX"]
 if arguments.precision == 1:
