@@ -32,18 +32,27 @@ if arguments.precision == 1:
     compiler_options += ["-DPRECISION=1"]
 
 # allocate memory
+site_size = 0
+matrix_size = 0
 if arguments.precision == 1:
-    a = np.random.rand(total_sites * 320).astype(np.byte)
-    b = np.random.rand(288).astype(np.byte)
+    site_size = 320
+    matrix_size = 288
 else:
-    a = np.random.rand(total_sites * 640).astype(np.byte)
-    b = np.random.rand(576).astype(np.byte)
+    site_size = 640
+    matrix_size = 576
+a = np.random.rand(total_sites * site_size).astype(np.byte)
+b = np.random.rand(matrix_size).astype(np.byte)
 c = np.zeros_like(a)
 args = [a, b, c, total_sites]
 
 # tunable parameters
 tune_params = dict()
 tune_params["block_size_x"] = [32 * i for i in range(1, 33)]
+
+# metrics
+metrics = dict()
+metrics["GFLOP/s"] = lambda p : (total_sites * 864.0) / (p["time"] / 10**3) / 10**9
+metrics["GB/s"] = lambda p : (len(a) + len(c) + len(b)) / (p["time"] / 10**3) / 10**9
 
 results, _ = tune_kernel(
     "k_mat_nn",
@@ -53,4 +62,5 @@ results, _ = tune_kernel(
     tune_params,
     lang="cupy",
     compiler_options=compiler_options,
+    metrics=metrics
 )
