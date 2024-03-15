@@ -5,6 +5,7 @@
 #include <math.h>
 #include <vector>
 #include <iostream>
+#include <fstream>
 #include <string>
 #include <cassert>
 #include <cmath>
@@ -28,6 +29,7 @@ typedef std::chrono::system_clock Clock;
 // Global variables
 unsigned int verbose=1;
 size_t       warmups=1;
+bool save_data=false;
 // global argc and argv for parsing model specific parameters
 int  g_argc;
 char **g_argv;
@@ -221,6 +223,19 @@ int main(int argc, char **argv)
   make_lattice(a.data(), ldim, Complx{1.0,0.0});
   init_link(b.data(), Complx{1.0/3.0,0.0});
 
+  if (save_data) {
+    // store a
+    std::ofstream file;
+    file = std::ofstream("a_in.bin", std::ios::out | std::ios::binary);
+    file.write(reinterpret_cast<char *>(a.data()), total_sites * sizeof(site));
+    file.flush();
+    file.close();
+    file = std::ofstream("b_in.bin", std::ios::out | std::ios::binary);
+    file.write(reinterpret_cast<char *>(b.data()), 4 * sizeof(su3_matrix));
+    file.flush();
+    file.close();
+  }
+
   if (verbose >= 1) {
     printf("Number of sites = %zu^4\n", ldim);
     printf("Executing %zu iterations with %zu warmups\n", iterations, warmups);
@@ -279,6 +294,15 @@ int main(int argc, char **argv)
     #else
       assert(almost_equal(c[i].link[j].e[k][l], cc, 1E-6));
     #endif
+  }
+
+  if (save_data) {
+    // store c
+    std::ofstream file;
+    file = std::ofstream("c_out.bin", std::ios::out | std::ios::binary);
+    file.write(reinterpret_cast<char *>(c.data()), total_sites * sizeof(site));
+    file.flush();
+    file.close();
   }
 
   // check memory usage
