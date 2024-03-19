@@ -16,7 +16,7 @@ def parse_cli() -> argparse.Namespace:
         default=2,
     )
     parser.add_argument("--milc", help="Enable MILC_COMPLEX.", action="store_true")
-    parser.add_argument("--path", help="Path to load data structures from.", type=str, required=True)
+    parser.add_argument("--threads", "The number of threads per site.", type=int, default=36)
     return parser.parse_args()
 
 
@@ -41,13 +41,11 @@ if arguments.precision == 1:
 else:
     site_size = 640
     matrix_size = 576
-a = np.fromfile(f"{arguments.path}/a_in.bin", dtype=np.byte)
-b = np.fromfile(f"{arguments.path}/b_in.bin", dtype=np.byte)
+a = np.random.rand(total_sites * site_size).astype(np.byte)
+b = np.random.rand(matrix_size).astype(np.byte)
 c = np.zeros_like(a)
-c_truth = np.fromfile(f"{arguments.path}/c_out.bin", dtype=np.byte)
 
 args = [a, b, c, total_sites]
-answer = [None, None, c_truth, None]
 
 # tunable parameters
 tune_params = dict()
@@ -61,10 +59,9 @@ metrics["GB/s"] = lambda p: (len(a) + len(c) + len(b)) / (p["time"] / 1000) / 10
 results, _ = tune_kernel(
     "k_mat_nn",
     kernel_code,
-    total_sites,
+    total_sites * arguments.threads,
     args,
     tune_params,
-    answer=answer,
     lang="cupy",
     compiler_options=compiler_options,
     metrics=metrics,
