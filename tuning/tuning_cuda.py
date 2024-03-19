@@ -16,7 +16,7 @@ def parse_cli() -> argparse.Namespace:
         default=2,
     )
     parser.add_argument("--milc", help="Enable MILC_COMPLEX.", action="store_true")
-    parser.add_argument("--threads", "The number of threads per site.", type=int, default=36)
+    parser.add_argument("--threads", help="The number of threads per site.", type=int, default=36)
     return parser.parse_args()
 
 
