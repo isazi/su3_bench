@@ -1,8 +1,4 @@
-#ifdef kernel_tuner
-#pragma tuner initialize
-#include <lattice.hpp>
-#pragma tuner stop
-#else kernel_tuner
+#ifndef kernel_tuner
 #define NTHREADS 128
 #define COLLAPSE_FACTOR 3
 #endif
