@@ -1,6 +1,14 @@
-// OpenACC implementation
+#ifdef kernel_tuner
+#pragma tuner initialize
+#include <lattice.hpp>
+#pragma tuner stop
+#else kernel_tuner
+#define NTHREADS 128
+#define COLLAPSE_FACTOR 3
+#endif
 
-double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<site> &c, 
+// OpenACC implementation
+double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<site> &c,
 		  size_t total_sites, size_t iterations, size_t threads_per_team, int use_device, Profile* profile)
 {
   site *d_a, *d_c;
@@ -25,9 +33,11 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
       tstart = Clock::now();
       tprofiling = tstart;
     }
-    #pragma acc parallel loop gang present(d_a[0:len_a], d_b[0:len_b], d_c[0:len_c])
+    #pragma tuner start k_mat_nn d_a(site*:LEN_A) d_b(su3_matrix*:LEN_B) d_c(site*:LEN_C) total_sites(int:SITES)
+    #pragma acc parallel vector_length(NTHREADS) present(d_a[0:len_a], d_b[0:len_b], d_c[0:len_c])
+    #pragma acc loop gang
     for(int i=0;i<total_sites;++i) {
-      #pragma acc loop worker vector collapse(3)
+      #pragma acc loop worker vector collapse(COLLAPSE_FACTOR)
       for (int j=0; j<4; ++j) {
         for(int k=0;k<3;k++) {
           for(int l=0;l<3;l++){
@@ -50,6 +60,7 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
         }
       }
     }
+    #pragma tuner stop
   }
   double ttotal = std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tstart).count();
   profile->kernel_time = (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;

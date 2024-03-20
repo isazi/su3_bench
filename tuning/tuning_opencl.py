@@ -3,7 +3,7 @@ import numpy as np
 from kernel_tuner import tune_kernel
 
 
-# read CUDA code
+# read OpenCL code
 with open("../mat_nn_opencl_kernel.cpp", "r") as file:
     kernel_code = file.read()
 
@@ -40,4 +40,4 @@ results, _ = tune_kernel(
     lang="opencl",
     compiler_options=compiler_options,
     metrics=metrics,
-    )
+)

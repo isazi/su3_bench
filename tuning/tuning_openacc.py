@@ -1,15 +1,29 @@
 from tuning_common import parse_cli, compute_sizes, add_metrics
 import numpy as np
 from kernel_tuner import tune_kernel
+from kernel_tuner.utils.directives import (
+    extract_directive_code,
+    extract_initialization_code,
+    extract_directive_signature,
+    generate_directive_function,
+)
 
 
-# read HIP code
-with open("../mat_nn_hip_kernel.cpp", "r") as file:
+# read OpenACC file
+with open("../mat_nn_openacc.hpp", "r") as file:
     kernel_code = file.read()
 
 arguments = parse_cli()
 total_sites = np.int32(arguments.ldim**4)
-compiler_options = ["-std=c++14", "-I..", "-default-device", "-DUSE_HIP"]
+compiler_options = [
+    "-std=c++14",
+    "-fast",
+    "-acc=gpu",
+    "-gpu=fastmath",
+    "-I..",
+    "-default-device",
+    "-DUSE_OPENACC",
+]
 if arguments.milc:
     compiler_options += ["-DMILC_COMPLEX"]
 if arguments.precision == 1:
@@ -23,9 +37,17 @@ c = np.zeros_like(a)
 
 args = [a, b, c, total_sites]
 
+# generate code
+init = extract_initialization_code(kernel_code)
+signature = extract_directive_signature(kernel_code, "k_mat_nn")
+body = extract_directive_code(kernel_code, "k_mat_nn")
+kernel_string = generate_directive_function("", signature, body)
+
 # tunable parameters
 tune_params = dict()
-tune_params["block_size_x"] = [32 * i for i in range(1, 33)]
+tune_params["NGANGS"] = [2**i for i in range(0, 15)]
+tune_params["NTHREADS"] = [32 * i for i in range(1, 33)]
+tune_params["COLLAPSE_FACTOR"] = [1, 2, 3]
 
 # metrics
 metrics = dict()
@@ -33,11 +55,11 @@ add_metrics(metrics, total_sites, site_size, matrix_size)
 
 results, _ = tune_kernel(
     "k_mat_nn",
-    kernel_code,
-    total_sites * arguments.threads,
+    kernel_string,
+    0,
     args,
     tune_params,
-    lang="hip",
+    compiler="nvc++",
     compiler_options=compiler_options,
     metrics=metrics,
 )
