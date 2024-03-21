@@ -55,7 +55,6 @@ kernel_string = generate_directive_function(
 
 # tunable parameters
 tune_params = dict()
-tune_params["NGANGS"] = [2**i for i in range(0, 15)]
 tune_params["NTHREADS"] = [32 * i for i in range(1, 33)]
 tune_params["COLLAPSE_FACTOR"] = [1, 2, 3]
 
