@@ -1,6 +1,5 @@
 #ifndef kernel_tuner
 #define NTHREADS 128
-#define COLLAPSE_FACTOR 3
 #endif
 
 // OpenACC implementation
@@ -35,7 +34,7 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
     #pragma acc parallel vector_length(NTHREADS) present(d_a[0:len_a], d_b[0:len_b], d_c[0:len_c])
     #pragma acc loop gang
     for(int i=0;i<total_sites;++i) {
-      #pragma acc loop worker vector collapse(COLLAPSE_FACTOR)
+      #pragma acc loop worker vector collapse(3)
       for (int j=0; j<4; ++j) {
         for(int k=0;k<3;k++) {
           for(int l=0;l<3;l++){
