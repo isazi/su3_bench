@@ -39,9 +39,9 @@ args = [a, b, c, total_sites]
 # generate code
 preprocessor = ["#include <lattice.hpp>"]
 dimensions = dict()
-dimensions["len_a"] = len(a)
-dimensions["len_b"] = len(b)
-dimensions["len_c"] = len(c)
+dimensions["len_a"] = total_sites
+dimensions["len_b"] = 4
+dimensions["len_c"] = total_sites
 init = extract_initialization_code(kernel_code)
 signature = extract_directive_signature(kernel_code, "k_mat_nn")
 body = extract_directive_code(kernel_code, "k_mat_nn")
