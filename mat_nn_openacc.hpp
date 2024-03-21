@@ -17,7 +17,9 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
   auto tprofiling = Clock::now();
 
   // Move A, B and C vectors to the device
+  #pragma tuner initialize
   #pragma acc enter data copyin(d_a[0:len_a], d_b[0:len_b], d_c[0:len_c])
+  #pragma tuner stop
 
   profile->host_to_device_time = (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
 
