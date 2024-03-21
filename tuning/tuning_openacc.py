@@ -41,7 +41,7 @@ init = extract_initialization_code(kernel_code)
 signature = extract_directive_signature(kernel_code, "k_mat_nn")
 body = extract_directive_code(kernel_code, "k_mat_nn")
 kernel_string = generate_directive_function(
-    "#include <lattice.hpp>",
+    ["#include <lattice.hpp>"],
     signature["k_mat_nn"],
     body["k_mat_nn"],
     initialization=init,
