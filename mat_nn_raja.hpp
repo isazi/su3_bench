@@ -18,6 +18,19 @@
   using threads_z = RAJA::LoopPolicy<RAJA::hip_thread_z_direct>;
 #endif
 
+static void synchronize() {
+  // nothing to do for host devices
+#if defined(RAJA_ENABLE_CUDA)
+  RAJA::synchronize<RAJA::cuda_synchronize>();
+#endif
+#if defined(RAJA_ENABLE_HIP)
+  RAJA::synchronize<RAJA::hip_synchronize>();
+#endif
+#if defined(RAJA_ENABLE_SYCL)
+  RAJA::synchronize<RAJA::sycl_synchronize>();
+#endif
+}
+
 double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<site> &c, size_t total_sites, size_t iterations, size_t threadsPerBlock, int device, Profile* profile) {
   size_t size_a = sizeof(site) * total_sites;
   size_t size_b = sizeof(su3_matrix) * 4;
@@ -51,10 +64,10 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
 
   profile->host_to_device_time = (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
 
-  constexpr int threads_per_side = 4 * 3 * 3;
-  constexpr int threads_per_block = 256;
-  constexpr int sides_per_block = threads_per_block / threads_per_side;
-  const int teams = (total_sites + sides_per_block - 1) / sides_per_block;
+  constexpr int threads_per_site = 4 * 3 * 3;
+  constexpr int threads_per_block = 128;
+  constexpr int sites_per_block = threads_per_block / threads_per_site; // 7 sites per block. Last four threads in each block go unused.
+  const int teams = (total_sites + sites_per_block - 1) / sites_per_block; // (1048576 + 7 - 1) / 7 = 149797 teams. 1048579 sites attempted, last 3 should be skipped
 
   auto tstart = Clock::now();
   tprofiling = tstart;
@@ -65,14 +78,14 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
       tprofiling = tstart;
     }
     RAJA::launch<launch_policy>(RAJA::ExecPlace::DEVICE,
-      RAJA::LaunchParams(RAJA::Teams(teams), RAJA::Threads(sides_per_block*4,3,3)),
+      RAJA::LaunchParams(RAJA::Teams(teams), RAJA::Threads(sites_per_block*4,3,3)),
         [=] RAJA_HOST_DEVICE (RAJA::LaunchContext ctx) {
           RAJA::loop<teams_x>(ctx, RAJA::TypedRangeSegment<int>(0, (teams)), [&] (int site) {
-            RAJA::loop<threads_x>(ctx, RAJA::TypedRangeSegment<int>(0, sides_per_block *4), [&] (int j) {
+            RAJA::loop<threads_x>(ctx, RAJA::TypedRangeSegment<int>(0, sites_per_block *4), [&] (int j) {
               RAJA::loop<threads_y>(ctx, RAJA::TypedRangeSegment<int>(0, 3), [&] (int k) {
                 RAJA::loop<threads_z>(ctx, RAJA::TypedRangeSegment<int>(0, 3), [&] (int l) {
-                  const int site_id = j / sides_per_block;
-                  const int my_site = (site * sides_per_block) + site_id;
+                  const int site_id = j / 4;
+                  const int my_site = (site * sites_per_block) + site_id;
                   const int jj = j % 4;
                   if ( my_site < total_sites ) {
                     Complx cc = {0.0, 0.0};
