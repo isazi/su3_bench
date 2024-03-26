@@ -13,7 +13,7 @@
 #include <chrono>
 typedef std::chrono::system_clock Clock;
 #ifdef USE_OPENMP
-  #include <omp.h>
+#include <omp.h>
 #endif
 
 #ifndef ITERATIONS
@@ -144,6 +144,8 @@ void make_lattice(site *s, size_t n, Complx val) {
   #include "mat_nn_kokkos.hpp"
 #elif USE_RAJA
   #include "mat_nn_raja.hpp"
+#elif USE_KMM
+  #include "mat_nn_kmm.hpp"
 #else
   #error Unknown programming model
 #endif
