@@ -1,18 +1,22 @@
 #
 # depends on a Cuda module being loaded
-CC = nvcc
-CFLAGS = -ccbin g++ -m64 --x cu -O3
-CFLAGS += -gencode arch=compute_$(ARCH),code=sm_$(ARCH)
+CC = g++
+CUCC = nvcc
+CFLAGS = -O3
+CUFLAGS = -gencode arch=compute_$(ARCH),code=sm_$(ARCH)
 DEFINES = -DUSE_KMM -DMILC_COMPLEX
 DEPENDS = su3.hpp lattice.hpp mat_nn_kmm.hpp mat_nn_cuda_kernel.cu
 
 bench_f32_kmm_cuda.exe: su3_nn_bench.cpp $(DEPENDS)
-	$(CC) $(CFLAGS) $(DEFINES) -DPRECISION=1 -o $@ su3_nn_bench.cpp $(LIBS)
+    $(CUCC) $(CUFLAGS) $(DEFINES) -DPRECISION=1 -c mat_nn_cuda_kernel.cu -o mat_nn_cuda_kernel.o
+	$(CC) $(CFLAGS) $(DEFINES) -DPRECISION=1 -o $@ su3_nn_bench.cpp mat_nn_cuda_kernel.o $(LIBS)
 
 bench_f64_kmm_cuda.exe: su3_nn_bench.cpp $(DEPENDS)
-	$(CC) $(CFLAGS) $(DEFINES) -o $@ su3_nn_bench.cpp $(LIBS)
+	$(CUCC) $(CUFLAGS) $(DEFINES) -c mat_nn_cuda_kernel.cu -o mat_nn_cuda_kernel.o
+    	$(CC) $(CFLAGS) $(DEFINES) -o $@ su3_nn_bench.cpp mat_nn_cuda_kernel.o $(LIBS)
 
 all: bench_f64_kmm_cuda.exe bench_f32_kmm_cuda.exe
 
 clean:
-	rm -f *cuda.exe
+    rm mat_nn_cuda_kernel.o
+	rm -f *kmm_cuda.exe
