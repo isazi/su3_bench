@@ -1,7 +1,6 @@
 // KMM+CUDA implementation
 #include <kmm/array.hpp>
 #include <kmm/runtime_handle.hpp>
-#include "mat_nn_cuda_kernel.cu"
 
 
 #define THREADS_PER_SITE 36
@@ -11,8 +10,9 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
 {
   int blocksPerGrid;
 
-  if (threadsPerBlock == 0)
+  if (threadsPerBlock == 0) {
     threadsPerBlock = THREADS_PER_SITE;
+  }
 
   // init KMM manager
   auto manager = kmm::build_runtime();
@@ -20,9 +20,9 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
   auto tprofiling = Clock::now();
 
   // Declare target storage and copy A and B
-  auto d_a manager.allocate(a);
-  auto d_b manager.allocate(b);
-  auto d_c manager.allocate(c);
+  auto d_a = manager.allocate(a);
+  auto d_b = manager.allocate(b);
+  auto d_c = manager.allocate(c);
 
   double sitesPerBlock = (double)threadsPerBlock / THREADS_PER_SITE;
   blocksPerGrid = total_sites/sitesPerBlock + 0.999999;
@@ -42,7 +42,7 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
       tstart = Clock::now();
       tprofiling = tstart;
     }
-    manager.submit(kmm::CudaKernel(blocksPerGrid, threadsPerBlock), d_a, d_b, write(d_c), total_sites);
+    manager.submit(kmm::CudaKernel(blocksPerGrid, threadsPerBlock), k_mat_nn, d_a, d_b, write(d_c), total_sites);
   }
   manager.synchronize();
   double ttotal = std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tstart).count();
