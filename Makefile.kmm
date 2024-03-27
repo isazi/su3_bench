@@ -1,19 +1,17 @@
 #
 # depends on a Cuda module being loaded
-CC = g++
-CUCC = nvcc
-CFLAGS = -O3
-CUFLAGS = -gencode arch=compute_$(ARCH),code=sm_$(ARCH)
-DEFINES = -DUSE_KMM -DMILC_COMPLEX
+CC = nvcc
+CFLAGS = -ccbin g++ -m64 --x cu -O3 -std=cxx17
+CFLAGS += -gencode arch=compute_$(ARCH),code=sm_$(ARCH)
+DEFINES = -DUSE_KMM -DKMM_USE_CUDA -DMILC_COMPLEX
 DEPENDS = su3.hpp lattice.hpp mat_nn_kmm.hpp mat_nn_cuda_kernel.cu
+LIBS = -lkmm
 
 bench_f32_kmm_cuda.exe: su3_nn_bench.cpp $(DEPENDS)
-	$(CUCC) $(CUFLAGS) $(DEFINES) -DPRECISION=1 -c mat_nn_cuda_kernel.cu -o mat_nn_cuda_kernel.o
-	$(CC) $(CFLAGS) $(DEFINES) -DPRECISION=1 -o $@ su3_nn_bench.cpp mat_nn_cuda_kernel.o $(LIBS)
+	$(CC) $(CFLAGS) $(DEFINES) -DPRECISION=1 -o $@ su3_nn_bench.cpp $(LIBS)
 
 bench_f64_kmm_cuda.exe: su3_nn_bench.cpp $(DEPENDS)
-	$(CUCC) $(CUFLAGS) $(DEFINES) -c mat_nn_cuda_kernel.cu -o mat_nn_cuda_kernel.o
-	$(CC) $(CFLAGS) $(DEFINES) -o $@ su3_nn_bench.cpp mat_nn_cuda_kernel.o $(LIBS)
+	$(CC) $(CFLAGS) $(DEFINES) -o $@ su3_nn_bench.cpp $(LIBS)
 
 all: bench_f64_kmm_cuda.exe bench_f32_kmm_cuda.exe
 

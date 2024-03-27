@@ -1,6 +1,8 @@
 // KMM+CUDA implementation
 #include <kmm/array.hpp>
+#include <kmm/cuda/cuda.hpp>
 #include <kmm/runtime_handle.hpp>
+#include "mat_nn_cuda_kernel.cu"
 
 
 #define THREADS_PER_SITE 36
