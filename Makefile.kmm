@@ -12,7 +12,7 @@ bench_f32_kmm_cuda.exe: su3_nn_bench.cpp $(DEPENDS)
 bench_f64_kmm_cuda.exe: su3_nn_bench.cpp $(DEPENDS)
 	$(CC) $(CFLAGS) $(DEFINES) -o $@ su3_nn_bench.cpp $(LIBS)
 
-all: bench_f64_cuda.exe bench_f32_cuda.exe
+all: bench_f64_kmm.exe bench_f32_kmm.exe
 
 clean:
 	rm -f *cuda.exe
