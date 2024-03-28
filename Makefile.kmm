@@ -16,5 +16,4 @@ bench_f64_kmm_cuda.exe: su3_nn_bench.cpp $(DEPENDS)
 all: bench_f64_kmm_cuda.exe bench_f32_kmm_cuda.exe
 
 clean:
-	rm mat_nn_cuda_kernel.o
 	rm -f *kmm_cuda.exe
