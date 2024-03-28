@@ -16,12 +16,10 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
     threadsPerBlock = THREADS_PER_SITE;
   }
 
-  // init KMM manager
+  // initialize KMM manager
   auto manager = kmm::build_runtime();
 
-  auto tprofiling = Clock::now();
-
-  // Declare target storage and copy A and B
+  // declare target storage and copy A and B
   auto d_a = manager.allocate(a);
   auto d_b = manager.allocate(b);
   auto d_c = manager.allocate(c);
@@ -36,13 +34,11 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
 
   // benchmark loop
   auto tstart = Clock::now();
-  tprofiling = tstart;
 
   for (int iters=0; iters<iterations+warmups; ++iters) {
     if (iters == warmups) {
       manager.synchronize();
       tstart = Clock::now();
-      tprofiling = tstart;
     }
     manager.submit(kmm::CudaKernel(blocksPerGrid, threadsPerBlock), k_mat_nn, d_a, d_b, write(d_c), total_sites);
   }
