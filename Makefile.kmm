@@ -1,7 +1,7 @@
 #
 # depends on a Cuda module being loaded
 CC = nvcc
-CFLAGS = -ccbin g++ -m64 --x cu -O3 -std=cxx17
+CFLAGS = -ccbin g++ -m64 --x cu -O3 -std=c++17
 CFLAGS += -gencode arch=compute_$(ARCH),code=sm_$(ARCH)
 DEFINES = -DUSE_KMM -DKMM_USE_CUDA -DMILC_COMPLEX
 DEPENDS = su3.hpp lattice.hpp mat_nn_kmm.hpp mat_nn_cuda_kernel.cu
