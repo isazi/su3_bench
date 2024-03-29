@@ -22,7 +22,7 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
   // declare target storage and copy A and B
   auto d_a = manager.allocate(a);
   auto d_b = manager.allocate(b);
-  auto d_c = manager.allocate(c);
+  auto d_c = kmm::Array<site>(total_sites);
 
   double sitesPerBlock = (double)threadsPerBlock / THREADS_PER_SITE;
   blocksPerGrid = total_sites/sitesPerBlock + 0.999999;
