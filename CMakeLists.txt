@@ -91,7 +91,7 @@ elseif (${MODEL} STREQUAL "SYCL")
     target_link_options(bench_f64 PUBLIC "$<$<CONFIG:RELEASE>:${OFFLOAD_FLAGS}>")
 elseif (${MODEL} STREQUAL "DPCPP")
     set(CMAKE_CXX_STANDARD 17)
-  add_compile_definitions(USE_DPCPP MILC_COMPLEX)
+    add_compile_definitions(USE_DPCPP MILC_COMPLEX)
 
     find_package(AdaptiveCpp)
     if (AdaptiveCpp_FOUND)
@@ -107,7 +107,7 @@ elseif (${MODEL} STREQUAL "DPCPP")
     target_link_options(bench_f32 PUBLIC "$<$<CONFIG:RELEASE>:${OFFLOAD_FLAGS}>")
     target_link_options(bench_f64 PUBLIC "$<$<CONFIG:RELEASE>:${OFFLOAD_FLAGS}>")
 elseif (${MODEL} STREQUAL "OpenACC")
-    add_compile_definitions(USE_OPENACC)
+    add_compile_definitions(USE_OPENACC MILC_COMPLEX)
 
     separate_arguments(OFFLOAD_FLAGS)
 
@@ -117,7 +117,7 @@ elseif (${MODEL} STREQUAL "OpenACC")
     target_link_options(bench_f32 PUBLIC "$<$<CONFIG:RELEASE>:${OFFLOAD_FLAGS}>")
     target_link_options(bench_f64 PUBLIC "$<$<CONFIG:RELEASE>:${OFFLOAD_FLAGS}>")
 elseif (${MODEL} STREQUAL "OpenMP-Offload")
-    add_compile_definitions(USE_OPENMP)
+    add_compile_definitions(USE_OPENMP MILC_COMPLEX)
 
     separate_arguments(OFFLOAD_FLAGS)
 
