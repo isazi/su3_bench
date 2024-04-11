@@ -32,9 +32,8 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
     }
     #pragma tuner start k_mat_nn d_a(site*:LEN_A) d_b(su3_matrix*:LEN_B) d_c(site*:LEN_C) total_sites(int:SITES)
     #pragma acc parallel vector_length(NTHREADS) present(d_a[0:len_a], d_b[0:len_b], d_c[0:len_c])
-    #pragma acc loop gang
+    #pragma acc loop collapse(4)
     for(int i=0;i<total_sites;++i) {
-      #pragma acc loop worker vector collapse(3)
       for (int j=0; j<4; ++j) {
         for(int k=0;k<3;k++) {
           for(int l=0;l<3;l++){
@@ -50,8 +49,7 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
             for(int m=0;m<3;m++) {
                CMULSUM(d_a[i].link[j].e[k][m], d_b[j].e[m][l], cc);
             }
-            d_c[i].link[j].e[k][l].real = cc.real;
-            d_c[i].link[j].e[k][l].imag = cc.imag;
+            d_c[i].link[j].e[k][l] = cc;
 #endif
           }
         }
