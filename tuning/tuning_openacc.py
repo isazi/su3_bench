@@ -2,6 +2,9 @@ from tuning_common import parse_cli, compute_sizes, add_metrics
 import numpy as np
 from kernel_tuner import tune_kernel
 from kernel_tuner.utils.directives import (
+    Code,
+    OpenACC,
+    Cxx,
     extract_directive_code,
     extract_initialization_code,
     extract_directive_signature,
@@ -42,13 +45,15 @@ dimensions = dict()
 dimensions["len_a"] = total_sites
 dimensions["len_b"] = 4
 dimensions["len_c"] = total_sites
-init = extract_initialization_code(kernel_code)
-signature = extract_directive_signature(kernel_code, "k_mat_nn")
-body = extract_directive_code(kernel_code, "k_mat_nn")
+app = Code(OpenACC(), Cxx())
+init = extract_initialization_code(kernel_code, app)
+signature = extract_directive_signature(kernel_code, app, "k_mat_nn")
+body = extract_directive_code(kernel_code, app, "k_mat_nn")
 kernel_string = generate_directive_function(
     preprocessor,
     signature["k_mat_nn"],
     body["k_mat_nn"],
+    app,
     initialization=init,
     user_dimensions=dimensions,
 )
