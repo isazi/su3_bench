@@ -5,7 +5,6 @@ from kernel_tuner.utils.directives import (
     Code,
     OpenMP,
     Cxx,
-    extract_preprocessor,
     extract_directive_code,
     extract_initialization_code,
     extract_deinitialization_code,
@@ -41,8 +40,7 @@ c = np.zeros_like(a)
 args = [a, b, c, total_sites]
 
 # generate code
-preprocessor = extract_preprocessor(kernel_code)
-preprocessor.append("#include <lattice.hpp>")
+preprocessor= ["#include <lattice.hpp>", "#include <omp.h>", "#include <unistd.h>", "#define THREADS_PER_SITE 36"]
 dimensions = dict()
 dimensions["len_a"] = total_sites
 dimensions["len_b"] = 4
