@@ -2,11 +2,13 @@
 #include <omp.h>
 #include <unistd.h>
 
+#ifndef kernel_tuner
 #define THREADS_PER_SITE 36
 #define NUM_TEAMS 1600
 #ifndef USE_VERSION
   #define USE_VERSION 2
 #endif
+#endif // kernel_tuner
 
 double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<site> &c,
 		  size_t total_sites, size_t iterations, size_t threads_per_team, int use_device, Profile* profile)
@@ -37,45 +39,44 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
   // Move A and B data to the device, Allocate C data
   double ttotal;
   auto tprofiling = Clock::now();
+  #pragma tuner initialize
   #pragma omp target enter data map(to: d_a[0:len_a], d_b[0:len_b]) map(alloc: d_c[0:len_c])
+  #pragma tuner stop
   profile->host_to_device_time = (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
 
   // benchmark loop
   auto tstart = Clock::now();
   tprofiling = tstart;
-#if USE_VERSION == 0
-  // Baseline implementation
-	// Original intent is to have teams process whole sites, 
-	//   hence sites are distributed across the teams
-	// However, for the Clang 10.0 OpenMP compiler this has issues in that memory gets
-	//   flushed after each parallel region causing excessive global memory traffic
-  // See USE_VERSION
-  if (verbose >= 1) {
-    std::cout << "Number of teams = " << num_teams << std::endl;
-    std::cout << "Threads per team = " << threads_per_team << std::endl;
-  }
 
   for (int iters=0; iters<iterations+warmups; ++iters) {
     if (iters == warmups) {
       tstart = Clock::now();
       tprofiling = tstart;
     }
+#pragma tuner start k_mat_nn a(site*:LEN_A) b(su3_matrix*:LEN_B) c(site*:LEN_C) total_sites(int:SITES)
+#if USE_VERSION == 0
+    // Baseline implementation
+    // Original intent is to have teams process whole sites,
+    //   hence sites are distributed across the teams
+    // However, for the Clang 10.0 OpenMP compiler this has issues in that memory gets
+    //   flushed after each parallel region causing excessive global memory traffic
+    // See USE_VERSION
 
-    #pragma omp target teams distribute
+#pragma omp target teams distribute
     for(int i=0;i<total_sites;++i) {
-      #pragma omp parallel for collapse(3)
+#pragma omp parallel for collapse(3)
       for (int j=0; j<4; ++j) {
         for(int k=0;k<3;k++) {
           for(int l=0;l<3;l++){
             Complx cc = {0.0, 0.0};
 #ifndef MILC_COMPLEX
             for(int m=0;m<3;m++) {
-               cc += d_a[i].link[j].e[k][m] * d_b[j].e[m][l];
+              cc += d_a[i].link[j].e[k][m] * d_b[j].e[m][l];
             }
             d_c[i].link[j].e[k][l] = cc;
 #else
             for(int m=0;m<3;m++) {
-               CMULSUM(d_a[i].link[j].e[k][m], d_b[j].e[m][l], cc);
+              CMULSUM(d_a[i].link[j].e[k][m], d_b[j].e[m][l], cc);
             }
             d_c[i].link[j].e[k][l].real = cc.real;
             d_c[i].link[j].e[k][l].imag = cc.imag;
@@ -84,173 +85,130 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
         }
       }
     }
-  }
-
 #elif USE_VERSION == 1
-  // This version improves performance over the baseline
-  // Contributed by Chris Daley, NERSC
-  if (verbose >= 1) {
-    std::cout << "Number of teams = " << num_teams << std::endl;
-    std::cout << "Threads per team = " << threads_per_team << std::endl;
-  }
+    // This version improves performance over the baseline
+    // Contributed by Chris Daley, NERSC
 
-  for (int iters=0; iters<iterations+warmups; ++iters) {
-    if (iters == warmups) {
-      tstart = Clock::now();
-      tprofiling = tstart;
-    }
-
-    #pragma omp target teams 
-    {
-      #pragma omp parallel
+#pragma omp target teams
       {
-        int total_teams = omp_get_num_teams();
-        int team_id = omp_get_team_num();
-        int sites_per_team = (total_sites + total_teams - 1) / total_teams;
-        int istart = team_id * sites_per_team;
-        if (istart > total_sites) istart = total_sites;
-        int iend = istart + sites_per_team;
-        if (iend > total_sites) iend = total_sites;
+#pragma omp parallel
+        {
+          int total_teams = omp_get_num_teams();
+          int team_id = omp_get_team_num();
+          int sites_per_team = (total_sites + total_teams - 1) / total_teams;
+          int istart = team_id * sites_per_team;
+          if (istart > total_sites) istart = total_sites;
+          int iend = istart + sites_per_team;
+          if (iend > total_sites) iend = total_sites;
 
-        for (int i = istart; i < iend; ++i) {
-          #pragma omp for collapse(3)
-          for (int j=0; j<4; ++j) {
-            for(int k=0;k<3;k++) {
-              for(int l=0;l<3;l++){
-                Complx cc = {0.0, 0.0};
+          for (int i = istart; i < iend; ++i) {
+#pragma omp for collapse(3)
+            for (int j=0; j<4; ++j) {
+              for(int k=0;k<3;k++) {
+                for(int l=0;l<3;l++){
+                  Complx cc = {0.0, 0.0};
 #ifndef MILC_COMPLEX
-                for(int m=0;m<3;m++) {
-                  cc += d_a[i].link[j].e[k][m] * d_b[j].e[m][l];
-                }
-                d_c[i].link[j].e[k][l] = cc;
+                  for(int m=0;m<3;m++) {
+                    cc += d_a[i].link[j].e[k][m] * d_b[j].e[m][l];
+                  }
+                  d_c[i].link[j].e[k][l] = cc;
 #else
-                for(int m=0;m<3;m++) {
-                   CMULSUM(d_a[i].link[j].e[k][m], d_b[j].e[m][l], cc);
-                }
-                d_c[i].link[j].e[k][l].real = cc.real;
-                d_c[i].link[j].e[k][l].imag = cc.imag;
+                  for(int m=0;m<3;m++) {
+                    CMULSUM(d_a[i].link[j].e[k][m], d_b[j].e[m][l], cc);
+                  }
+                  d_c[i].link[j].e[k][l].real = cc.real;
+                  d_c[i].link[j].e[k][l].imag = cc.imag;
 #endif
+                }
               }
             }
-          }
-        }  // end of i loop
-      }  // end of parallel region
-    }  // end of teams region
-  }
+          }  // end of i loop
+        }  // end of parallel region
+      }  // end of teams region
 
 #elif USE_VERSION == 2
-  // This code improves performance over above baseline
-  // Similar to Cuda and OpenCL work item approach
-  // Initial contribution by Xinmin Tian, Intel
-  size_t num_work_items = total_sites * THREADS_PER_SITE;
+    // This code improves performance over above baseline
+    // Similar to Cuda and OpenCL work item approach
+    // Initial contribution by Xinmin Tian, Intel
+    size_t num_work_items = total_sites * THREADS_PER_SITE;
 
-  if (verbose >= 1) {
-    std::cout << "Number of teams = " << num_teams << std::endl;
-    std::cout << "Threads per team = " << threads_per_team << std::endl;
-    std::cout << "Number of work items = " << num_work_items << std::endl;
-  }
+#pragma omp target teams distribute parallel for
+      for (int id =0; id < num_work_items; id++) {
+        int i = id/36;
+        if (i < total_sites) {
+          int j = (id%36)/9;
+          int k = (id%9)/3;
+          int l = id%3;
 
-  for (int iters=0; iters<iterations+warmups; ++iters) {
-    if (iters == warmups) {
-      tstart = Clock::now();
-      tprofiling = tstart;
-    }
-
-    #pragma omp target teams distribute parallel for
-    for (int id =0; id < num_work_items; id++) {
-      int i = id/36;
-      if (i < total_sites) {
-        int j = (id%36)/9;
-        int k = (id%9)/3;
-        int l = id%3;
-
-        Complx cc = {0.0, 0.0};
+          Complx cc = {0.0, 0.0};
 #ifndef MILC_COMPLEX
-        for(int m=0;m<3;m++) {
-          cc += d_a[i].link[j].e[k][m] * d_b[j].e[m][l];
-        }
-        d_c[i].link[j].e[k][l] = cc;
+          for(int m=0;m<3;m++) {
+            cc += d_a[i].link[j].e[k][m] * d_b[j].e[m][l];
+          }
+          d_c[i].link[j].e[k][l] = cc;
 #else
-        for(int m=0;m<3;m++) {
-           CMULSUM(d_a[i].link[j].e[k][m], d_b[j].e[m][l], cc);
-        }
-        d_c[i].link[j].e[k][l] = cc;
+          for(int m=0;m<3;m++) {
+            CMULSUM(d_a[i].link[j].e[k][m], d_b[j].e[m][l], cc);
+          }
+          d_c[i].link[j].e[k][l] = cc;
 #endif
+        }
       }
-    }
-  }
 
 #else // VERSION == 3 || VERSION == 4
-  // Baseline implementation
-  // Uses the purest intent of OpenMP
-  // Version 3 is a prescriptive approach using OpenMP-4.5 constructs
-  // Version 4 is a descriptive approach using the OpenMP-5.0 loop construct and
-  // giving the compiler the freedom to choose the number of teams and threads per team
-  if (verbose >= 1) {
-#if USE_VERSION == 3
-  #ifdef NOTARGET
-    std::cout << "Number of threads = " << omp_get_max_threads() << std::endl;
-  #else
-    std::cout << "Number of teams = " << num_teams << std::endl;
-    std::cout << "Threads per team = " << threads_per_team << std::endl;
-  #endif
-#elif USE_VERSION == 4
-    std::cout << "Number of teams = " << "Compiler selected" << std::endl;
-    std::cout << "Threads per team = " << "Compiler selected" << std::endl;
-#endif
-  }
-
-  for (int iters=0; iters<iterations+warmups; ++iters) {
-    if (iters == warmups) {
-      tstart = Clock::now();
-      tprofiling = tstart;
-    }
+    // Baseline implementation
+    // Uses the purest intent of OpenMP
+    // Version 3 is a prescriptive approach using OpenMP-4.5 constructs
+    // Version 4 is a descriptive approach using the OpenMP-5.0 loop construct and
+    // giving the compiler the freedom to choose the number of teams and threads per team
 
 #if USE_VERSION == 3
-  #ifdef NOTARGET
-    #pragma omp parallel for schedule(static)
-  #else
-    #pragma omp target teams distribute parallel for collapse(4) num_teams(num_teams) thread_limit(threads_per_team)
-  #endif
-#elif USE_VERSION == 4
-    #pragma omp target teams loop collapse(4)
+#ifdef NOTARGET
+#pragma omp parallel for schedule(static)
+#else
+#pragma omp target teams distribute parallel for collapse(4) num_teams(num_teams) thread_limit(threads_per_team)
 #endif
-    for(int i=0;i<total_sites;++i) {
-      for (int j=0; j<4; ++j) {
-        for(int k=0;k<3;k++) {
-          for(int l=0;l<3;l++){
-            Complx cc = {0.0, 0.0};
+#elif USE_VERSION == 4
+#pragma omp target teams loop collapse(4)
+#endif
+      for(int i=0;i<total_sites;++i) {
+        for (int j=0; j<4; ++j) {
+          for(int k=0;k<3;k++) {
+            for(int l=0;l<3;l++){
+              Complx cc = {0.0, 0.0};
 #ifndef MILC_COMPLEX
 #if USE_VERSION == 4
-            #pragma omp loop bind(thread)
+#pragma omp loop bind(thread)
 #endif
-            for(int m=0;m<3;m++) {
-               cc += d_a[i].link[j].e[k][m] * d_b[j].e[m][l];
-            }
-            d_c[i].link[j].e[k][l] = cc;
+              for(int m=0;m<3;m++) {
+                cc += d_a[i].link[j].e[k][m] * d_b[j].e[m][l];
+              }
+              d_c[i].link[j].e[k][l] = cc;
 #else
 #if USE_VERSION == 4
-            #pragma omp loop bind(thread)
+#pragma omp loop bind(thread)
 #endif
-            for(int m=0;m<3;m++) {
-               CMULSUM(d_a[i].link[j].e[k][m], d_b[j].e[m][l], cc);
+              for(int m=0;m<3;m++) {
+                CMULSUM(d_a[i].link[j].e[k][m], d_b[j].e[m][l], cc);
+              }
+              d_c[i].link[j].e[k][l] = cc;
+#endif
             }
-            d_c[i].link[j].e[k][l] = cc;
-#endif
           }
         }
       }
-    }
-  }
-
 #endif
+#pragma tuner stop
+  }
 
   profile->kernel_time = (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
   ttotal = std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tstart).count();
 
   // C gets moved back to the host
   tprofiling = Clock::now();
+  #pragma tuner deinitialize
   #pragma omp target exit data map(from: d_c[0:len_c])
+  #pragma tuner stop
   profile->device_to_host_time = (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
 
   // It is not possible to check for NaNs when the application is compiled with -ffast-math

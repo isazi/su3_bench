@@ -7,13 +7,14 @@ from kernel_tuner.utils.directives import (
     Cxx,
     extract_directive_code,
     extract_initialization_code,
+    extract_deinitialization_code,
     extract_directive_signature,
     generate_directive_function,
 )
 
 
 # read OpenACC file
-with open("../mat_nn_openmp2.hpp", "r") as file:
+with open("../mat_nn_openmp.hpp", "r") as file:
     kernel_code = file.read()
 
 arguments = parse_cli()
@@ -46,6 +47,7 @@ dimensions["len_b"] = 4
 dimensions["len_c"] = total_sites
 app = Code(OpenMP(), Cxx())
 init = extract_initialization_code(kernel_code, app)
+deinit = extract_deinitialization_code(kernel_code, app)
 signature = extract_directive_signature(kernel_code, app, "k_mat_nn")
 body = extract_directive_code(kernel_code, app, "k_mat_nn")
 kernel_string = generate_directive_function(
@@ -54,6 +56,7 @@ kernel_string = generate_directive_function(
     body["k_mat_nn"],
     app,
     initialization=init,
+    deinitialization=deinit,
     user_dimensions=dimensions,
 )
 
