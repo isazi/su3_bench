@@ -2,13 +2,11 @@
 #include <omp.h>
 #include <unistd.h>
 
-#ifndef kernel_tuner
 #define THREADS_PER_SITE 36
 #define NUM_TEAMS 1600
 #ifndef USE_VERSION
   #define USE_VERSION 2
 #endif
-#endif // kernel_tuner
 
 double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<site> &c,
 		  size_t total_sites, size_t iterations, size_t threads_per_team, int use_device, Profile* profile)
