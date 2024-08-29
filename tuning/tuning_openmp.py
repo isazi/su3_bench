@@ -1,4 +1,3 @@
-from tuning.tuning_openacc import preprocessor
 from tuning_common import parse_cli, compute_sizes, add_metrics
 import numpy as np
 from kernel_tuner import tune_kernel
