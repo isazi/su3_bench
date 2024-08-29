@@ -79,6 +79,7 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
     if (iters == warmups)
       tstart = Clock::now();
 
+#pragma tuner start k_mat_nn d_a(site*:LEN_A) d_b(su3_matrix*:LEN_B) d_c(site*:LEN_C) total_sites(int:SITES)
 #if USE_VERSION == 0
 # pragma omp parallel for collapse(4)
 #elif USE_VERSION == 1
@@ -130,6 +131,7 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
         }
       }
     }
+#pragma tuner stop
   }
 
   ttotal = std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tstart).count();
