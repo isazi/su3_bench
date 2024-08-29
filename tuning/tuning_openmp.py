@@ -24,7 +24,7 @@ compiler_options = [
     "-fast",
     "-mp=gpu",
     "-I..",
-    "-DUSE_OPENACC",
+    "-DUSE_OPENMP",
 ]
 if arguments.milc:
     compiler_options += ["-DMILC_COMPLEX"]
