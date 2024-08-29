@@ -40,7 +40,7 @@ c = np.zeros_like(a)
 args = [a, b, c, total_sites]
 
 # generate code
-preprocessor = ["#include <lattice.hpp>"]
+preprocessor = ["#include <lattice.hpp>", "#include <omp.h>"]
 dimensions = dict()
 dimensions["len_a"] = total_sites
 dimensions["len_b"] = 4
