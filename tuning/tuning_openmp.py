@@ -62,7 +62,7 @@ kernel_string = generate_directive_function(
 
 # tunable parameters
 tune_params = dict()
-tune_params["USE_VERSION"] = [0, 1, 2, 3, 4, 5]
+tune_params["USE_VERSION"] = [0, 1, 2, 3, 4]
 tune_params["threads_per_team"] = [32 * i for i in range(1, 33)]
 
 # metrics
