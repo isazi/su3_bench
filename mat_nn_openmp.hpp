@@ -67,6 +67,8 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
 #ifndef kernel_tuner
 #pragma omp parallel for collapse(3)
 #else
+      omp_set_dynamic(0);
+      omp_set_num_threads(threads_per_team);
 #pragma omp parallel for collapse(3) num_threads(threads_per_team)
 #endif
       for (int j=0; j<4; ++j) {
@@ -98,6 +100,8 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
 #ifndef kernel_tuner
 #pragma omp parallel
 #else
+        omp_set_dynamic(0);
+        omp_set_num_threads(threads_per_team);
 #pragma omp parallel num_threads(threads_per_team)
 #endif
         {
@@ -143,6 +147,8 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
 #ifndef kernel_tuner
 #pragma omp target teams distribute parallel for
 #else
+    omp_set_dynamic(0);
+    omp_set_num_threads(threads_per_team);
 #pragma omp target teams distribute parallel for num_threads(threads_per_team)
 #endif // kernel_tuner
       for (int id =0; id < num_work_items; id++) {
@@ -181,6 +187,8 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
 #ifndef kernel_tuner
 #pragma omp target teams distribute parallel for collapse(4) num_teams(num_teams) thread_limit(threads_per_team)
 #else
+    omp_set_dynamic(0);
+    omp_set_num_threads(threads_per_team);
 #pragma omp target teams distribute parallel for collapse(4) num_teams(NUM_TEAMS) thread_limit(threads_per_team)
 #endif // kernel_tuner
 #endif
@@ -188,7 +196,9 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
 #ifndef kernel_tuner
 #pragma omp target teams loop collapse(4)
 #else
-#pragma omp target teams loop collapse(4) num_threads(threads_per_team)
+    omp_set_dynamic(0);
+    omp_set_num_threads(threads_per_team);
+#pragma omp target teams loop collapse(4)
 #endif // kernel_tuner
 #endif
       for(int i=0;i<total_sites;++i) {
