@@ -53,7 +53,7 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
       tstart = Clock::now();
       tprofiling = tstart;
     }
-#pragma tuner start k_mat_nn a(site*:LEN_A) b(su3_matrix*:LEN_B) c(site*:LEN_C) total_sites(int:SITES)
+#pragma tuner start k_mat_nn d_a(site*:LEN_A) d_b(su3_matrix*:LEN_B) d_c(site*:LEN_C) total_sites(int:SITES)
 #if USE_VERSION == 0
     // Baseline implementation
     // Original intent is to have teams process whole sites,
