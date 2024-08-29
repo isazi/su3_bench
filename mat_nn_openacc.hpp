@@ -63,7 +63,9 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
 
   // move the result back
   tprofiling = Clock::now();
+  #pragma tuner deinitialize
   #pragma acc exit data copyout(d_c[0:len_c])
+  #pragma tuner stop
   profile->device_to_host_time = (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
 
   return (ttotal /= 1.0e6);
