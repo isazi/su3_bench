@@ -64,6 +64,8 @@ kernel_string = generate_directive_function(
 tune_params = dict()
 tune_params["USE_VERSION"] = [0, 1, 2, 3, 4]
 tune_params["threads_per_team"] = [32 * i for i in range(1, 33)]
+constraints = list()
+constraints.append("USE_VERSION == 0 and threads_per_team == 32")
 
 # metrics
 metrics = dict()
@@ -75,6 +77,7 @@ results, _ = tune_kernel(
     0,
     args,
     tune_params,
+    restrictions=constraints,
     compiler="nvc++",
     compiler_options=compiler_options,
     metrics=metrics,

@@ -64,13 +64,7 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
 
 #pragma omp target teams distribute
     for(int i=0;i<total_sites;++i) {
-#ifndef kernel_tuner
 #pragma omp parallel for collapse(3)
-#else
-      omp_set_dynamic(0);
-      omp_set_num_threads(threads_per_team);
-#pragma omp parallel for collapse(3) num_threads(threads_per_team)
-#endif
       for (int j=0; j<4; ++j) {
         for(int k=0;k<3;k++) {
           for(int l=0;l<3;l++){
