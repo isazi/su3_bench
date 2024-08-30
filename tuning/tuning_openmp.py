@@ -40,7 +40,13 @@ c = np.zeros_like(a)
 args = [a, b, c, total_sites]
 
 # generate code
-preprocessor= ["#include <lattice.hpp>", "#include <omp.h>", "#include <unistd.h>", "#define THREADS_PER_SITE 36", "#define NUM_TEAMS 1600"]
+preprocessor = [
+    "#include <lattice.hpp>",
+    "#include <omp.h>",
+    "#include <unistd.h>",
+    "#define THREADS_PER_SITE 36",
+    "#define NUM_TEAMS 1600",
+]
 dimensions = dict()
 dimensions["len_a"] = total_sites
 dimensions["len_b"] = 4
@@ -65,7 +71,9 @@ tune_params = dict()
 tune_params["USE_VERSION"] = [0, 1, 2, 3, 4]
 tune_params["threads_per_team"] = [32 * i for i in range(1, 33)]
 constraints = list()
-constraints.append("((USE_VERSION in [0, 1]) and threads_per_team == 32) or (USE_VERSION >= 2)")
+constraints.append(
+    "((USE_VERSION in [0, 1]) and threads_per_team == 32) or (USE_VERSION >= 2)"
+)
 
 # metrics
 metrics = dict()
