@@ -91,13 +91,7 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
 
 #pragma omp target teams
       {
-#ifndef kernel_tuner
 #pragma omp parallel
-#else
-        omp_set_dynamic(0);
-        omp_set_num_threads(threads_per_team);
-#pragma omp parallel num_threads(threads_per_team)
-#endif
         {
           int total_teams = omp_get_num_teams();
           int team_id = omp_get_team_num();

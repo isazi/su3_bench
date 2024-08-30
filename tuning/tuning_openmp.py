@@ -65,7 +65,7 @@ tune_params = dict()
 tune_params["USE_VERSION"] = [0, 1, 2, 3, 4]
 tune_params["threads_per_team"] = [32 * i for i in range(1, 33)]
 constraints = list()
-constraints.append("USE_VERSION == 0 and threads_per_team == 32")
+constraints.append("((USE_VERSION in [0, 1]) and threads_per_team == 32) or (USE_VERSION >= 2)")
 
 # metrics
 metrics = dict()
