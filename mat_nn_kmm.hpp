@@ -22,6 +22,7 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
   auto d_b = kmm::Array<su3_matrix> {4};
   auto d_c = kmm::Array<site> {total_sites};
   auto domain = kmm::TileDomain(total_sites, chunk_size);
+  auto _x = kmm::Axis(0);
 
   double sitesPerBlock = (double)threadsPerBlock / THREADS_PER_SITE;
   blocksPerGrid = total_sites/sitesPerBlock + 0.999999;
@@ -44,7 +45,7 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
         kmm::GPUKernel(k_mat_nn, threadsPerBlock),
         _x,
         d_a[_x],
-        d_b,
+        d_b[_],
         write(d_c[_x]),
         total_sites
     );
