@@ -32,6 +32,9 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
     printf("Threads per block set to %d\n", threadsPerBlock);
   }
 
+  d_a.copy_from(a.data(), a.size());
+  d_b.copy_from(b.data(), b.size());
+  d_c.copy_from(c.data(), c.size());
   // benchmark loop
   auto tstart = Clock::now();
 
@@ -54,7 +57,7 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
   double ttotal = (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tstart).count()) / 1.0e6;
 
   // copy data back from device
-  d_c.copy_to(c);
+  d_c.copy_to(c.data(), c.size());
 
   return (ttotal /= 1.0e6);
 }
