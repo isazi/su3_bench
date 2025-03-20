@@ -42,9 +42,10 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
     rt.parallel_submit(
         domain,
         kmm::GPUKernel(k_mat_nn, threadsPerBlock),
-        d_a,
+        _x,
+        d_a[_x],
         d_b,
-        write(d_c),
+        write(d_c[_x]),
         total_sites
     );
   }
