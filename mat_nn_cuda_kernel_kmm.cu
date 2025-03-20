@@ -1,7 +1,3 @@
-#ifdef kernel_tuner
-#include <lattice.hpp>
-#endif
-
 //*******************  m_mat_nn.c  (in su3.a) ****************************
 //  void mult_su3_nn( su3_matrix *a,*b,*c )
 //  matrix multiply, no adjoints
