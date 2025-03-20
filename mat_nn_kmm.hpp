@@ -17,12 +17,20 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
 
   // initialize KMM runtime
   auto rt = kmm::make_runtime();
-
-  auto d_a = kmm::Array<site> {total_sites};
-  auto d_b = kmm::Array<su3_matrix> {4};
-  auto d_c = kmm::Array<site> {total_sites};
   auto domain = kmm::TileDomain(total_sites, chunk_size);
   auto _x = kmm::Axis(0);
+
+  auto tprofiling = Clock::now();
+
+  // Declare target storage and copy A and B
+  auto d_a = rt.allocate(a);
+  auto d_b = rt.allocate(b);
+  auto d_c = rt.allocate(c);
+
+  d_a.copy_from(a.data(), a.size());
+  d_b.copy_from(b.data(), b.size());
+  rt.synchronize();
+  profile->host_to_device_time = (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
 
   double sitesPerBlock = (double)threadsPerBlock / THREADS_PER_SITE;
   blocksPerGrid = total_sites/sitesPerBlock + 0.999999;
@@ -32,16 +40,15 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
     printf("Threads per block set to %d\n", threadsPerBlock);
   }
 
-  d_a.copy_from(a.data(), a.size());
-  d_b.copy_from(b.data(), b.size());
-  d_c.copy_from(c.data(), c.size());
   // benchmark loop
   auto tstart = Clock::now();
+  tprofiling = tstart;
 
   for (int iters=0; iters<iterations+warmups; ++iters) {
     if (iters == warmups) {
       rt.synchronize();
       tstart = Clock::now();
+      tprofiling = tstart;
     }
     rt.parallel_submit(
         domain,
@@ -54,10 +61,14 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
     );
   }
   rt.synchronize();
-  double ttotal = (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tstart).count()) / 1.0e6;
+  profile->kernel_time = (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
+  double ttotal = std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tstart).count();
 
   // copy data back from device
+  tprofiling = Clock::now();
   d_c.copy_to(c.data(), c.size());
+  rt.synchronize();
+  profile->device_to_host_time= (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
 
   return (ttotal /= 1.0e6);
 }
