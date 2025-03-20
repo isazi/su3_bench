@@ -52,7 +52,7 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
   double ttotal = (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tstart).count()) / 1.0e6;
 
   // copy data back from device
-  d_c.read(c.data(), c.size());
+  d_c.copy_to(c);
 
   return (ttotal /= 1.0e6);
 }
