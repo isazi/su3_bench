@@ -39,7 +39,7 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
       rt.synchronize();
       tstart = Clock::now();
     }
-    rt.submit(
+    rt.parallel_submit(
         domain,
         kmm::GPUKernel(k_mat_nn, threadsPerBlock),
         d_a,
