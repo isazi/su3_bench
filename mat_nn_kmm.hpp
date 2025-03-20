@@ -8,6 +8,7 @@
 double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<site> &c,
                   size_t total_sites, size_t iterations, size_t threadsPerBlock, int use_device, Profile *profile)
 {
+  using namespace kmm::placeholders;
   int blocksPerGrid;
   int chunk_size = total_sites / 10;
 
