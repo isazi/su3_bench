@@ -1,8 +1,6 @@
 // KMM+CUDA implementation
-#include <kmm/array.hpp>
-#include <kmm/cuda/cuda.hpp>
-#include <kmm/runtime_handle.hpp>
-#include "mat_nn_cuda_kernel.cu"
+#include <kmm/kmm.hpp>
+#include "mat_nn_cuda_kernel_kmm.cu"
 
 
 #define THREADS_PER_SITE 36
@@ -11,18 +9,19 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
                   size_t total_sites, size_t iterations, size_t threadsPerBlock, int use_device, Profile *profile)
 {
   int blocksPerGrid;
+  int chunk_size = total_sites / 10;
 
   if (threadsPerBlock == 0) {
     threadsPerBlock = THREADS_PER_SITE;
   }
 
-  // initialize KMM manager
-  auto manager = kmm::build_runtime();
+  // initialize KMM runtime
+  auto rt = kmm::make_runtime();
 
-  // declare target storage and copy A and B
-  auto d_a = manager.allocate(a);
-  auto d_b = manager.allocate(b);
-  auto d_c = kmm::Array<site>(total_sites);
+  auto d_a = kmm::Array<site> {total_sites};
+  auto d_b = kmm::Array<su3_matrix> {4};
+  auto d_c = kmm::Array<site> {total_sites};
+  auto domain = kmm::TileDomain(total_sites, chunk_size);
 
   double sitesPerBlock = (double)threadsPerBlock / THREADS_PER_SITE;
   blocksPerGrid = total_sites/sitesPerBlock + 0.999999;
@@ -37,13 +36,20 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
 
   for (int iters=0; iters<iterations+warmups; ++iters) {
     if (iters == warmups) {
-      manager.synchronize();
+      rt.synchronize();
       tstart = Clock::now();
     }
-    manager.submit(kmm::CudaKernel(blocksPerGrid, threadsPerBlock), k_mat_nn, d_a, d_b, write(d_c), total_sites);
+    rt.submit(
+        domain,
+        kmm::GPUKernel(k_mat_nn, threadsPerBlock),
+        d_a,
+        d_b,
+        write(d_c),
+        total_sites
+    );
   }
-  manager.synchronize();
-  double ttotal = std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tstart).count();
+  rt.synchronize();
+  double ttotal = (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tstart).count()) / 1.0e6;
 
   // copy data back from device
   d_c.read(c.data(), c.size());
