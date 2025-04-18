@@ -33,11 +33,7 @@ double su3_mat_nn(std::vector<site> &a, std::vector<su3_matrix> &b, std::vector<
   rt.synchronize();
   profile->host_to_device_time = (std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-tprofiling).count())/1.0e6;
 
-  double sitesPerBlock = (double)threadsPerBlock / THREADS_PER_SITE;
-  blocksPerGrid = total_sites/sitesPerBlock + 0.999999;
-
   if (verbose >= 1) {
-    printf("Number of blocks set to %d\n", blocksPerGrid);
     printf("Threads per block set to %d\n", threadsPerBlock);
   }
 
